@@ -28,10 +28,10 @@ test('formatAmount: fractional → two decimals + German comma', () => {
   assert.equal(formatAmount(1234.5), '1.234,50');
 });
 test('formatIban: roundtrip ↔ spaces-every-4', () => {
-  assert.equal(formatIban('DE89370400440532013000'), 'DE89 3704 0044 0532 0130 00');
-  assert.equal(formatIban('DE89 3704 0044 0532 0130 00'), 'DE89 3704 0044 0532 0130 00');  // idempotent
+  assert.equal(formatIban('DE23999999990000000000'), 'DE23 9999 9999 0000 0000 00');
+  assert.equal(formatIban('DE23 9999 9999 0000 0000 00'), 'DE23 9999 9999 0000 0000 00');  // idempotent
 });
 test('stripIban: removes spaces, idempotent', () => {
-  assert.equal(stripIban('DE89 3704 0044 0532 0130 00'), 'DE89370400440532013000');
-  assert.equal(stripIban('DE89370400440532013000'), 'DE89370400440532013000');
+  assert.equal(stripIban('DE23 9999 9999 0000 0000 00'), 'DE23999999990000000000');
+  assert.equal(stripIban('DE23999999990000000000'), 'DE23999999990000000000');
 });

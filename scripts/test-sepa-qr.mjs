@@ -8,15 +8,15 @@ import QRCode from 'qrcode';
 test('generateQrCode returns EPC024-22 payload string', () => {
   const payload = generateQrCode({
     name: 'Leonard Böker',
-    iban: 'DE89370400440532013000',
-    bic: 'COBADEFFXXX',
+    iban: 'DE23999999990000000000',
+    bic: 'XXXXDE99',
     amount: 50.00,
     unstructuredReference: 'PayLeo-Max-2026',
   });
   // EPC024-22 spec: payload starts with "BCD" service tag
   assert.ok(payload.startsWith('BCD\n'), `expected BCD\\n... got: ${payload.slice(0, 20)}`);
   // Must contain the IBAN without spaces
-  assert.ok(payload.includes('DE89370400440532013000'), 'payload missing IBAN');
+  assert.ok(payload.includes('DE23999999990000000000'), 'payload missing IBAN');
   // Must contain the amount in EUR
   assert.ok(payload.includes('EUR50') || payload.includes('EUR50.00') || payload.includes('EUR50,00'),
     `amount not found in payload: ${payload}`);
@@ -27,8 +27,8 @@ test('generateQrCode returns EPC024-22 payload string', () => {
 test('QRCode.toDataURL renders payload to PNG data URL', async () => {
   const payload = generateQrCode({
     name: 'Leonard Böker',
-    iban: 'DE89370400440532013000',
-    bic: 'COBADEFFXXX',
+    iban: 'DE23999999990000000000',
+    bic: 'XXXXDE99',
     amount: 50.00,
     unstructuredReference: 'PayLeo-Max-2026',
   });

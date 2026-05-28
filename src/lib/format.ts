@@ -9,7 +9,7 @@ export function formatAmount(amount: number): string {
   });
 }
 
-/** "DE89370400440532013000" → "DE89 3704 0044 0532 0130 00" (spaces every 4). Idempotent. */
+/** "DE23999999990000000000" → "DE23 9999 9999 0000 0000 00" (spaces every 4). Idempotent. */
 export function formatIban(iban: string): string {
   return iban.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim();
 }
