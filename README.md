@@ -452,6 +452,15 @@ Before you actually send the links:
 
 ---
 
+## Sibling project
+
+Part of a small "friend-sized internet" series. Sister tool: **[when-we-go](https://github.com/Leonardboeker/when-we-go)** — same group-of-friends shape, same Astro + Cloudflare stack, same pixel-art aesthetic.
+
+- `pay-me-back` figures out **who pays what** (this repo).
+- `when-we-go` figures out **when** the group is going somewhere (Doodle-for-trips).
+
+The two are intentionally designed with the same conventions so they compose: in a planned future phase, a closed `when-we-go` poll can spawn a `pay-me-back` instance pre-populated with each trip participant as a debtor.
+
 ## Contributing
 
 This is a personal toolkit released as a template, not an actively-maintained product. PRs that fix bugs or genuinely generalize a Leo-specific quirk are welcome; PRs that add scope (auth, multi-tenancy, currencies beyond EUR) are probably not. Fork it.
