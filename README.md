@@ -33,6 +33,7 @@ This is the open-source template version of the original `pay.leonardboeker.de`.
 - [Quick start (local dev)](#quick-start-local-dev)
 - [Deploying (Cloudflare)](#deploying-cloudflare)
 - [Replacing the pixel art](#replacing-the-pixel-art)
+- [Attribution footer](#attribution-footer)
 - [Customising the copy](#customising-the-copy)
 - [Architecture](#architecture)
 - [Pre-launch checklist](#pre-launch-checklist)
@@ -276,6 +277,20 @@ Crisp pixel grid, no anti-aliasing.
 ```
 
 Save them at the exact paths above. The build doesn't care about the dimensions as long as the aspect ratio is roughly right — bigger PNGs just take longer to load.
+
+---
+
+## Attribution footer
+
+Every page rendered by this template ships with a small footer at the very bottom:
+
+> 💸 Built with **pay-me-back** — make your own
+
+It links back to this GitHub repo so visitors who like the site can find the source and build their own.
+
+It's **on by default but easy to remove** if you'd rather not have it — the whole thing is one block in `src/layouts/BaseLayout.astro` (look for the `<footer class="built-with-footer">` near the bottom). Delete the `<footer>` element and the matching `<style>` block above it.
+
+The MIT license technically only requires the copyright notice in the source code, not in the output. Keeping the footer is appreciated but not required. If you do customise it (e.g. point it to your own fork), please leave at least a single link back to this repo somewhere on the site so the chain stays discoverable.
 
 ---
 
