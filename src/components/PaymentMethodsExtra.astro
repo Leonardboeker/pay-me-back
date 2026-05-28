@@ -1,0 +1,133 @@
+---
+// src/components/PaymentMethodsExtra.astro
+// Opt-in payment methods beyond PayPal + SEPA. Reads env vars at build time
+// via getExtraPaymentMethods(); silently renders nothing if none are configured.
+//
+// Each method shows as a compact card: icon + label + CTA (open link / copy
+// number / scan QR). For copy/scan methods we pre-generate the QR PNG.
+import QRCode from 'qrcode';
+import { getExtraPaymentMethods } from '../lib/payment-methods';
+import CopyButton from './CopyButton.astro';
+
+interface Props {
+  amount: number;
+}
+const { amount } = Astro.props;
+
+const methods = getExtraPaymentMethods(amount);
+
+// Pre-generate QR data URLs for any method that needs scanning
+// (this happens at build time — zero client cost)
+const qrDataUrls: Record<string, string> = {};
+for (const m of methods) {
+  if (m.cta === 'scan' && m.value) {
+    qrDataUrls[m.kind] = await QRCode.toDataURL(m.value, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 160,
+      color: { dark: '#2a1f1a', light: '#ffffff' },
+    });
+  }
+}
+
+// Map accent → existing palette tokens so methods feel native
+const accentClasses: Record<string, string> = {
+  primary:   'border-l-primary',
+  secondary: 'border-l-secondary',
+  tertiary:  'border-l-tertiary',
+  neutral:   'border-l-on-background',
+};
+---
+
+{methods.length > 0 && (
+  <article
+    class="bg-surface-container p-5 pixel-border-shadow border-l-8 border-l-on-background"
+    style="box-shadow: 6px 6px 0 var(--color-on-background);"
+    aria-labelledby="extra-methods-h"
+  >
+    <h4
+      id="extra-methods-h"
+      class="font-[Syne] text-[18px] font-bold text-on-background mb-1 flex items-center gap-2"
+    >
+      <span class="font-[Press_Start_2P] text-[12px] text-primary">+</span>
+      Other ways to pay
+    </h4>
+    <p class="font-[Space_Mono] text-[12px] italic text-on-surface-variant mb-4">
+      Pick whatever's easiest. Same amount, same reference.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {methods.map((m) => (
+        <div
+          class={`flex flex-col gap-2 p-3 bg-surface-container-lowest pixel-inset border-l-4 ${accentClasses[m.accent]}`}
+        >
+          {/* Header: icon + label */}
+          <div class="flex items-center gap-2">
+            <span
+              class="inline-flex items-center justify-center w-7 h-7 text-on-background shrink-0"
+              style="background: var(--color-surface-container-highest); border: 2px solid var(--color-on-background);"
+              set:html={m.icon}
+            />
+            <span class="font-[JetBrains_Mono] text-[12px] font-bold uppercase tracking-wide text-on-background leading-tight">
+              {m.label}
+            </span>
+          </div>
+
+          {/* CTA — open link, copy value, or scan QR */}
+          {m.cta === 'open' && m.url && (
+            <a
+              href={m.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="pixel-button block w-full text-center bg-on-background text-inverse-on-surface font-[JetBrains_Mono] text-[11px] uppercase font-bold px-3 py-2 tracking-wider hover:bg-primary transition-colors"
+              aria-label={`Open ${m.label}`}
+            >
+              Open →
+            </a>
+          )}
+
+          {m.cta === 'copy' && m.value && (
+            <div class="flex bg-surface-container-highest pixel-inset">
+              <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+                <span class="font-[Space_Mono] text-[13px] text-on-background truncate select-all font-bold">
+                  {m.value}
+                </span>
+              </div>
+              <CopyButton value={m.value} label={`Copy ${m.label}`} />
+            </div>
+          )}
+
+          {m.cta === 'scan' && m.value && qrDataUrls[m.kind] && (
+            <div class="flex flex-col items-center gap-2">
+              <div class="bg-white p-1 border-2 border-on-background">
+                <img
+                  src={qrDataUrls[m.kind]}
+                  width="120"
+                  height="120"
+                  alt={`${m.label} QR code`}
+                  class="block"
+                  style="image-rendering: pixelated;"
+                />
+              </div>
+              <div class="flex w-full bg-surface-container-highest pixel-inset">
+                <div class="flex-grow p-1 px-2 flex flex-col justify-center min-w-0">
+                  <span class="font-[Space_Mono] text-[10px] text-on-background truncate select-all">
+                    {m.value.replace(/^(bitcoin|ethereum):/, '')}
+                  </span>
+                </div>
+                <CopyButton value={m.value.replace(/^(bitcoin|ethereum):/, '')} label="Copy address" />
+              </div>
+            </div>
+          )}
+
+          {/* Hint */}
+          {m.hint && (
+            <p class="font-[Space_Mono] text-[11px] italic text-on-surface-variant leading-snug">
+              {m.hint}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  </article>
+)}

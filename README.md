@@ -19,7 +19,7 @@ Per-person URL · soft self-irony · a slider that visibly shrinks as people pay
 
 Built for the awkward "hey you still owe me €50 from the cabin trip" group of about 5-15 friends — **not** for a public payments product. Self-hosted on Cloudflare's free tier; total monthly cost is €0 unless you do something exotic.
 
-This is the open-source template version of the original `pay.leonardboeker.de`. All personal data has been stripped; you provide your own debtors, bank details, PayPal handle, and (optional) Telegram bot.
+All personal data has been stripped from this template; you provide your own debtors, bank details, PayPal handle, and (optional) Telegram bot.
 
 > **It's a microsite, not a payment processor.** Money still moves through PayPal or a SEPA transfer that the debtor initiates themselves. Confirmation is on the honor system — they tap "I sent it," you get a Telegram ping, your slider goes down. Trust + a shared joke is the whole UX.
 
@@ -33,8 +33,11 @@ This is the open-source template version of the original `pay.leonardboeker.de`.
 - [Quick start (local dev)](#quick-start-local-dev)
 - [Deploying (Cloudflare)](#deploying-cloudflare)
 - [Replacing the pixel art](#replacing-the-pixel-art)
+- [Payment methods](#payment-methods)
+- [Open Graph link previews](#open-graph-link-previews)
 - [Attribution footer](#attribution-footer)
 - [Customising the copy](#customising-the-copy)
+- [Live demo (run it yourself)](#live-demo-run-it-yourself)
 - [Architecture](#architecture)
 - [Pre-launch checklist](#pre-launch-checklist)
 - [Data retention](#data-retention)
@@ -280,6 +283,43 @@ Save them at the exact paths above. The build doesn't care about the dimensions 
 
 ---
 
+## Payment methods
+
+Out of the box the template ships **three primary methods**: PayPal.me, a SEPA classic IBAN block, and a SEPA EPC-QR code (scannable in every EU banking app).
+
+Beyond those, **eleven optional methods** are wired up and light up automatically when their env var is set — otherwise the card is silently hidden. Configure as many or as few as make sense for your group:
+
+| Method | Env var | Notes |
+|---|---|---|
+| Stripe Payment Link | `PAYLEO_STRIPE_LINK` | Covers card / Apple Pay / Google Pay / SEPA Direct Debit. Auto-fills `?prefilled_amount=<cents>&currency=eur` if the link allows custom amounts. |
+| Revolut.me | `PAYLEO_REVOLUT_HANDLE` | `revolut.me/<handle>/<amount>EUR` — prefills amount. |
+| Wise | `PAYLEO_WISE_HANDLE` | `wise.com/pay/me/<handle>`. |
+| bunq.me | `PAYLEO_BUNQ_HANDLE` | `bunq.me/<handle>/<amount>` — instant SEPA. |
+| Bizum (🇪🇸) | `PAYLEO_BIZUM_PHONE` | Shows the phone number; user sends from their bank's Bizum tab. |
+| Twint (🇨🇭) | `PAYLEO_TWINT_PHONE` | Shows the Twint-linked phone number. |
+| Swish (🇸🇪) | `PAYLEO_SWISH_NUMBER` | Shows the Swish number. |
+| MB WAY (🇵🇹) | `PAYLEO_MBWAY_PHONE` | Shows the MB WAY phone number. |
+| Bitcoin | `PAYLEO_BTC_ADDRESS` | Renders a BIP-21 `bitcoin:` QR + copyable address. |
+| Ethereum | `PAYLEO_ETH_ADDRESS` | Renders an EIP-681 `ethereum:` QR + copyable address. |
+| Ko-fi | `PAYLEO_KOFI_HANDLE` | `ko-fi.com/<handle>` — useful for tip-jar / wedding-fund use case. |
+| Buy Me a Coffee | `PAYLEO_BUYMEACOFFEE_HANDLE` | `buymeacoffee.com/<handle>`. |
+
+Set the ones you care about as Cloudflare Pages env vars (and locally in `.env`) — re-deploy, done. Each one becomes a small card in the "Other ways to pay" grid on every debtor page.
+
+---
+
+## Open Graph link previews
+
+Every per-token URL gets a **per-debtor 1200×630 PNG** generated at build time and wired into the `<meta property="og:image">` tag. When the link is shared in WhatsApp / iMessage / Slack / Twitter, the preview card shows the debtor's name + amount + days-remaining countdown — instead of the generic "pay-me-back" fallback.
+
+Implementation: Satori turns a JSX-ish layout into SVG, [@resvg/resvg-js](https://github.com/yisibl/resvg-js) rasterises it to PNG. No external service, no runtime cost — everything is pre-rendered into `dist/og/<token>.png` during `astro build`.
+
+To customise the design, edit `src/pages/og/[token].png.ts`. Bundle a different font in `public/fonts/` and update the `fontPath` constant if you want a different look.
+
+**Important:** set `PUBLIC_SITE_URL=https://pay.your-domain.com` at build time so the `<meta>` tags resolve to absolute URLs (link-preview crawlers require this).
+
+---
+
 ## Attribution footer
 
 Every page rendered by this template ships with a small footer at the very bottom:
@@ -296,9 +336,24 @@ The MIT license technically only requires the copyright notice in the source cod
 
 ## Customising the copy
 
-User-facing strings live in `src/components/*.astro` and `worker/lib/notify-text.ts`. They're in English; the original (`pay.leonardboeker.de`) mixed German + English by debtor. Translate freely.
+User-facing strings live in `src/components/*.astro` and `worker/lib/notify-text.ts`. They're in English. Translate freely — feel free to mix multiple languages per-debtor (e.g. write backstories in whatever language each person actually uses).
 
 The voice guide is at `docs/TONE.md` — short, opinionated, and the reason the original site actually got people to pay back without anyone feeling lectured.
+
+---
+
+## Live demo (run it yourself)
+
+A live demo isn't hosted (we don't want to pay for everyone's bandwidth and the placeholder data would just confuse), but spinning one up against your own Cloudflare account is one command:
+
+```bash
+# After cloning + npm install + npm run build:
+npx wrangler pages deploy dist --project-name=pay-me-back-demo
+```
+
+CF returns a `https://pay-me-back-demo.pages.dev` URL on first deploy. Click any debtor token (`/EXAMPLE_TOKEN_ALICE_REPLACE_ME/`) to see the three-act page; click `/admin/test-admin-token-1234567890/` (or whatever you set `PAYLEO_ADMIN_TOKEN` to) to see the admin dashboard.
+
+The demo doesn't include the Worker (the slider stays at zero, confirms don't fire) — that's a separate `npm run worker:deploy`. Both are documented in [Deploying (Cloudflare)](#deploying-cloudflare).
 
 ---
 

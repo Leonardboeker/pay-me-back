@@ -11,6 +11,7 @@ import CopyButton from './CopyButton.astro';
 import ModalitySelector from './ModalitySelector.astro';
 import SuccessState from './SuccessState.astro';
 import Leaderboard from './Leaderboard.astro';
+import PaymentMethodsExtra from './PaymentMethodsExtra.astro';
 
 interface Props {
   name: string;
@@ -336,6 +337,10 @@ const ratenMonthly = formatAmount(Math.round((amount / 3) * 100) / 100);
               </p>
             </div>
           </article>
+
+          {/* === Extra payment methods (Stripe, Revolut, Wise, Bizum, Twint, BTC, ETH, etc.) ===
+              Lights up automatically for whichever env vars are set; silently empty if none. */}
+          <PaymentMethodsExtra amount={amount} />
         </div>
 
         {/* Success state — un-hidden by [token].astro state-IIFE if already confirmed.

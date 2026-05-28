@@ -77,7 +77,11 @@ const initialTotalCents = debtors.reduce((sum, d) => sum + Math.round(d.amount *
 const publicApiBase = import.meta.env.PUBLIC_API_BASE ?? '';
 ---
 
-<BaseLayout title={`Hey ${debtor.name} — quick thing`}>
+<BaseLayout
+  title={`Hey ${debtor.name} — quick thing`}
+  ogImage={`/og/${debtor.token}.png`}
+  ogDescription={`You still owe ${debtor.amount} € — tap to pay, ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left.`}
+>
   <!-- LCP optimization: preload Leo studio scene (Act 1 hero) -->
   <link rel="preload" as="image" href="/sprites/leo-studio.png" slot="head" />
   <link rel="preload" as="image" href="/sprites/leo-character.png" slot="head" />

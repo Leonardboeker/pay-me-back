@@ -3,8 +3,22 @@ import '../styles/global.css';
 
 interface Props {
   title?: string;
+  /** Per-debtor OG image path (e.g. "/og/abc123.png"). When set, link-preview
+   *  apps (WhatsApp, iMessage, Twitter) render a personalised card. */
+  ogImage?: string;
+  /** OG description shown beneath the title in link previews */
+  ogDescription?: string;
 }
-const { title = 'pay-me-back' } = Astro.props;
+const {
+  title = 'pay-me-back',
+  ogImage,
+  ogDescription = 'A friend-shaped pay-me-back microsite.',
+} = Astro.props;
+
+// Resolve OG image to a full URL so platforms that require absolute URLs work
+const ogImageAbsolute = ogImage
+  ? new URL(ogImage, Astro.site ?? Astro.url.origin).toString()
+  : undefined;
 
 // ───────────────────────────────────────────────────────────────
 // Attribution footer
@@ -25,6 +39,19 @@ const REPO_URL = 'https://github.com/Leonardboeker/pay-me-back';
     <meta name="referrer" content="no-referrer" />
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    {/* Open Graph / Twitter card — shown in WhatsApp, iMessage, Slack, Twitter etc. */}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={ogDescription} />
+    <meta property="og:type" content="website" />
+    {ogImageAbsolute && <meta property="og:image" content={ogImageAbsolute} />}
+    {ogImageAbsolute && <meta property="og:image:width" content="1200" />}
+    {ogImageAbsolute && <meta property="og:image:height" content="630" />}
+    <meta name="twitter:card" content={ogImageAbsolute ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={ogDescription} />
+    {ogImageAbsolute && <meta name="twitter:image" content={ogImageAbsolute} />}
+
     <slot name="head" />
     <style>
       /* Attribution footer — see comment in BaseLayout.astro */
