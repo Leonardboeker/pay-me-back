@@ -1,0 +1,35 @@
+---
+// src/components/BackstoryCard.astro
+// "Erinnerst du dich?" card with generic pixel icon + debtor-specific backstory.
+// Phase 3.1: Restyled to Barcelona Pixel Dawn — pixel-bordered scroll with
+// Syne headline + Space Mono italic body. Currently unused (Act3Payment owns
+// the live backstory) — kept on new tokens for reuse.
+// Per UI-SPEC §8. D-08.
+interface Props {
+  name: string;
+  backstory: string;
+}
+const { backstory } = Astro.props;
+---
+
+<article
+  class="bg-surface-container-low p-5 pixel-border-shadow mt-8 md:mt-6 relative"
+  style="box-shadow: 6px 6px 0 var(--color-on-background);"
+>
+  <span class="block font-[JetBrains_Mono] text-[12px] text-primary uppercase tracking-widest mb-3 font-bold">
+    ERINNERST DU DICH?
+  </span>
+  <p class="font-[Space_Mono] text-[16px] text-on-surface-variant leading-relaxed italic max-w-[60ch]">
+    {backstory || <span class="text-on-surface-variant italic opacity-60">„Backstory folgt noch."</span>}
+  </p>
+  <div class="flex justify-end items-center gap-2 mt-4">
+    <div
+      class="w-6 h-6 bg-secondary pixel-border-shadow flex items-center justify-center"
+      style="box-shadow: 2px 2px 0 var(--color-on-background);"
+      aria-hidden="true"
+    >
+      <span class="font-[Press_Start_2P] text-[8px] text-on-secondary">L</span>
+    </div>
+    <p class="font-[JetBrains_Mono] text-[12px] text-primary font-bold uppercase">- Leo</p>
+  </div>
+</article>

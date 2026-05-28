@@ -1,0 +1,25 @@
+---
+// src/components/admin/AdminTable.astro
+// Sticky-header table (D-02) — Name, Amount, Status, Modality, Last Activity, Actions.
+// D-01: utilitarian — no pixel-RPG decorations. Uses .admin-table class for clean borders.
+// Mobile: overflow-x-auto wrapper allows horizontal scroll on narrow viewports.
+---
+<section class="admin-table-wrapper overflow-x-auto mb-6">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Modality</th>
+        <th>Last Activity</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="admin-tbody">
+      <tr>
+        <td colspan="6" class="admin-loading">Loading debtors…</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

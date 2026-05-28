@@ -1,0 +1,189 @@
+---
+// src/components/PostDeadlinePage.astro
+// Minimal post-deadline branch. Shown when isPostDeadline() = true.
+// Per UI-SPEC §6 + docs/TONE.md verbatim wording D-21.
+// Phase 3.1: Restyled to Barcelona Pixel Dawn — pixel-bordered cards, Syne headline,
+// Space Mono body, JetBrains Mono labels. Payment cards inlined (legacy
+// PaymentCard* still on sand/sunset tokens). No worker integration on this branch.
+import { buildPaypalUrl, formatAmount, formatIban, stripIban } from '../lib/format';
+import CopyButton from './CopyButton.astro';
+
+interface Props {
+  name: string;
+  amount: number;
+  paypalHandle: string;
+  holder: string;
+  iban: string;
+  bic: string;
+  purpose: string;
+  qrDataUrl: string;
+}
+const { amount, paypalHandle, holder, iban, bic, purpose, qrDataUrl } = Astro.props;
+const amountFmt = formatAmount(amount);
+const ibanDisplay = formatIban(iban);
+const ibanClip = stripIban(iban);
+const paypalUrl = buildPaypalUrl(paypalHandle, amount);
+const alle4 = `Recipient: ${holder}\nIBAN: ${ibanClip}\nBIC: ${bic}\nReference: ${purpose}`;
+---
+
+<section
+  class="relative w-full min-h-[100dvh] paper-texture pb-32"
+  aria-label="Leo on the road — late payment"
+>
+  {/* === Sticky pixel header — matches Act3Payment === */}
+  <header class="sticky top-0 z-50 w-full bg-surface-container border-b-4 border-on-background h-16 flex justify-between items-center px-4 py-2">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-primary-fixed pixel-border-shadow overflow-hidden flex items-center justify-center" style="box-shadow: 2px 2px 0 var(--color-on-background);">
+        <img
+          src="/sprites/leo-character.png"
+          alt="Leo pixel sprite"
+          class="h-full w-auto object-cover pixelated animate-float"
+          style="object-position: 0% 0%; transform: scale(2); transform-origin: top left;"
+          aria-hidden="true"
+        />
+      </div>
+      <div class="flex flex-col leading-none">
+        <span class="font-[Press_Start_2P] text-[12px] md:text-[14px] text-primary tracking-tighter uppercase">
+          PAY LEO BACK
+        </span>
+        <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant mt-1 uppercase">
+          Leo is on the road
+        </span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 bg-tertiary-container px-3 py-1 pixel-border-shadow" style="box-shadow: 2px 2px 0 var(--color-on-background);">
+      <span class="font-[JetBrains_Mono] text-[12px] md:text-[14px] text-on-background uppercase tracking-wider font-bold">
+        QUEST ENDED
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 md:px-10 py-10 flex flex-col gap-8 relative z-10">
+
+    {/* Headline + intro */}
+    <section class="bg-surface-container-low p-6 pixel-border-shadow relative" style="box-shadow: 6px 6px 0 var(--color-on-background);">
+      <span class="block font-[JetBrains_Mono] text-[12px] text-primary uppercase tracking-widest mb-3 font-bold">
+        STATUS UPDATE
+      </span>
+      <h1 class="font-[Syne] text-[24px] md:text-[32px] font-bold text-on-background leading-tight mb-3">
+        Leo is on the road.
+      </h1>
+      <p class="font-[Space_Mono] text-[16px] text-on-surface-variant leading-relaxed">
+        Leo has flown off — no stress. If you still want to pay now, here:
+      </p>
+    </section>
+
+    {/* === Payment options === */}
+    <div class="flex flex-col gap-5">
+
+      {/* === PayPal === */}
+      <article class="bg-primary-container p-5 pixel-border-shadow border-l-8 border-l-secondary" style="box-shadow: 6px 6px 0 var(--color-on-background);" aria-labelledby="paypal-h-pd">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-white pixel-inset flex items-center justify-center">
+            <span class="font-[Press_Start_2P] text-[14px] text-primary">P</span>
+          </div>
+          <div>
+            <h2 id="paypal-h-pd" class="font-[Syne] text-[18px] font-bold text-on-background">PayPal.Me</h2>
+            <p class="font-[JetBrains_Mono] text-[10px] uppercase tracking-wider text-on-primary-container">Fast &amp; direct</p>
+          </div>
+        </div>
+        <a
+          href={paypalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="pixel-button block w-full text-center bg-secondary text-on-secondary font-[JetBrains_Mono] text-[14px] uppercase font-bold px-6 py-4 tracking-wider"
+          aria-label={`Pay ${amountFmt} euros with PayPal`}
+        >
+          PAY WITH PAYPAL — {amountFmt} €
+        </a>
+        <p class="font-[Space_Mono] text-[12px] italic text-on-primary-container mt-2">
+          Heads up: PayPal doesn't prefill the reference field.
+        </p>
+      </article>
+
+      {/* === Bank === */}
+      <article class="bg-surface-container p-5 pixel-border-shadow border-l-8 border-l-primary relative overflow-hidden" style="box-shadow: 6px 6px 0 var(--color-on-background);" aria-labelledby="bank-h-pd">
+        <div class="absolute inset-0 dither-bg opacity-20 pointer-events-none"></div>
+        <h2 id="bank-h-pd" class="font-[Syne] text-[18px] font-bold text-on-background mb-4 flex items-center gap-2 relative z-10">
+          <span class="font-[Press_Start_2P] text-[12px] text-primary">$</span>
+          Classic bank transfer
+        </h2>
+
+        <div class="flex flex-col gap-2 relative z-10">
+          <div class="flex bg-surface-container-highest pixel-inset">
+            <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+              <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Recipient</span>
+              <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{holder}</span>
+            </div>
+            <CopyButton value={holder} label="Copy recipient" />
+          </div>
+          <div class="flex bg-surface-container-highest pixel-inset">
+            <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+              <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">IBAN</span>
+              <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{ibanDisplay}</span>
+            </div>
+            <CopyButton value={ibanClip} label="Copy IBAN" />
+          </div>
+          <div class="flex bg-surface-container-highest pixel-inset">
+            <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+              <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">BIC</span>
+              <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{bic}</span>
+            </div>
+            <CopyButton value={bic} label="Copy BIC" />
+          </div>
+          <div class="flex bg-surface-container-highest pixel-inset">
+            <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+              <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Reference</span>
+              <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{purpose}</span>
+            </div>
+            <CopyButton value={purpose} label="Copy reference" />
+          </div>
+          <div class="flex bg-surface-container-highest pixel-inset">
+            <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+              <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Amount</span>
+              <span class="font-[Space_Mono] text-[14px] text-on-background font-bold">{amountFmt} €</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative z-10">
+          <CopyButton value={alle4} label="Copy all 4 fields" variant="wide" successLabel="✓ All 4 copied!" />
+        </div>
+      </article>
+
+      {/* === QR === */}
+      <article class="bg-surface-container-lowest p-5 pixel-border-shadow border-l-8 border-l-tertiary flex flex-col items-center gap-3" style="box-shadow: 6px 6px 0 var(--color-on-background);" aria-labelledby="qr-h-pd">
+        <h2 id="qr-h-pd" class="font-[Syne] text-[18px] font-bold text-on-background self-start flex items-center gap-2">
+          <span class="font-[Press_Start_2P] text-[12px] text-tertiary">▣</span>
+          SEPA QR-Code
+        </h2>
+        <div class="bg-white p-2 border-4 border-on-background">
+          <img
+            src={qrDataUrl}
+            width="180"
+            height="180"
+            alt={`SEPA transfer to ${holder} for ${amount} euros with reference ${purpose}`}
+            class="pixel block"
+            style="max-width: 100%; height: auto; image-rendering: pixelated;"
+          />
+        </div>
+        <p class="font-[JetBrains_Mono] text-[12px] text-on-surface-variant uppercase tracking-wider font-bold">
+          SCAN WITH BANKING APP
+        </p>
+        <p class="font-[Space_Mono] text-[12px] italic text-on-surface-variant text-center">
+          IBAN, amount and reference are filled in automatically.
+        </p>
+      </article>
+    </div>
+
+    {/* Footer note */}
+    <footer class="mt-4 pt-6 border-t-4 border-on-background flex flex-col gap-2">
+      <p class="font-[JetBrains_Mono] text-[12px] text-on-surface-variant uppercase tracking-widest">
+        Questions? <a href="mailto:you@example.com" class="underline text-primary">you@example.com</a>
+      </p>
+      <p class="font-[Space_Mono] text-[12px] italic text-on-surface-variant">
+        Private. No tracking. Data deleted after the deadline.
+      </p>
+    </footer>
+  </main>
+</section>

@@ -1,0 +1,55 @@
+---
+// src/components/PaymentCardPayPal.astro
+// PayPal CTA card. Primary CTA.
+// Phase 3.1: Restyled to Barcelona Pixel Dawn — chunky pixel-border, sunset-orange
+// container, pixel-button CTA. Currently unused (Act3Payment owns the live PayPal
+// block in the 3-act layout) — kept on new tokens for reuse.
+// Per UI-SPEC §9.2, D-14, D-18, D-20. PAY-01.
+import { buildPaypalUrl, formatAmount } from '../lib/format';
+
+interface Props {
+  amount: number;
+  paypalHandle: string;
+}
+const { amount, paypalHandle } = Astro.props;
+const paypalUrl = buildPaypalUrl(paypalHandle, amount);
+const amountFmt = formatAmount(amount);
+---
+
+<article
+  class="bg-primary-container p-5 pixel-border-shadow border-l-8 border-l-secondary"
+  style="box-shadow: 6px 6px 0 var(--color-on-background);"
+  aria-labelledby="paypal-card-heading"
+>
+  <div class="flex items-center gap-3 mb-3">
+    <div class="w-12 h-12 bg-white pixel-inset flex items-center justify-center" aria-hidden="true">
+      <span class="font-[Press_Start_2P] text-[14px] text-primary">P</span>
+    </div>
+    <div>
+      <h2 id="paypal-card-heading" class="font-[Syne] text-[18px] font-bold text-on-background">
+        Fastest way
+      </h2>
+      <p class="font-[JetBrains_Mono] text-[10px] uppercase tracking-wider text-on-primary-container">
+        PayPal.Me
+      </p>
+    </div>
+  </div>
+
+  <p class="font-[Press_Start_2P] text-[20px] text-on-background text-center mb-4">
+    {amountFmt} €
+  </p>
+
+  <a
+    href={paypalUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="pixel-button block w-full text-center bg-secondary text-on-secondary font-[JetBrains_Mono] text-[14px] uppercase font-bold px-6 py-4 tracking-wider"
+    aria-describedby="paypal-disclaimer"
+  >
+    PAY WITH PAYPAL — {amountFmt} €
+  </a>
+
+  <p id="paypal-disclaimer" class="font-[Space_Mono] text-[12px] italic text-on-primary-container mt-2">
+    Heads up: PayPal doesn't prefill the reference field.
+  </p>
+</article>

@@ -1,0 +1,26 @@
+[
+  {
+    "token": "EXAMPLE_TOKEN_ALICE_REPLACE_ME",
+    "name": "Alice",
+    "amount": 50,
+    "backstory": "Concert tickets last summer — you Venmo'd me but my Venmo was broken, so I covered yours too.",
+    "characterSlug": "placeholder",
+    "createdAt": "2026-01-01T00:00:00Z"
+  },
+  {
+    "token": "EXAMPLE_TOKEN_BOB_REPLACE_ME",
+    "name": "Bob",
+    "amount": 25,
+    "backstory": "That late-night taxi from the bar to your place. Driver only took cash and you were out.",
+    "characterSlug": "placeholder",
+    "createdAt": "2026-01-01T00:00:00Z"
+  },
+  {
+    "token": "EXAMPLE_TOKEN_CHARLIE_REPLACE_ME",
+    "name": "Charlie",
+    "amount": 120,
+    "backstory": "Weekend cabin — groceries, gas, and the firewood guy. Your share of the split.",
+    "characterSlug": "placeholder",
+    "createdAt": "2026-01-01T00:00:00Z"
+  }
+]

@@ -1,0 +1,26 @@
+---
+// src/components/admin/AdminHeader.astro
+// Title + manual Refresh button + last-refreshed timestamp.
+// D-01: Utilitarian — no .pixel-* classes here. Uses native system fonts.
+// D-10: Manual refresh only (no auto-polling).
+---
+<header class="admin-header">
+  <div class="flex items-center justify-between gap-4 mb-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight" style="font-family: var(--font-headline);">
+        PayLeo Admin
+      </h1>
+      <p class="text-sm text-on-surface-variant mt-1">
+        <span id="admin-debtor-count">…</span> debtors · Last refreshed <span id="last-refreshed">never</span>
+      </p>
+    </div>
+    <button
+      id="refresh-btn"
+      type="button"
+      class="admin-button"
+      aria-label="Refresh data"
+    >
+      &#x21BB; Refresh
+    </button>
+  </div>
+</header>

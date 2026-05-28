@@ -1,0 +1,28 @@
+---
+// src/components/admin/AdminStats.astro
+// HP-bar (D-03) + modality breakdown (D-04).
+// D-01: Solid orange fill, no diagonal stripes. Reuses --color-primary-container token.
+---
+<section class="admin-stats grid gap-4 md:grid-cols-2 mb-6">
+  {/* HP-bar widget — solid fill (utilitarian per D-01) */}
+  <div class="admin-card">
+    <p class="admin-card-label">Total Open</p>
+    <div class="admin-hp-bar">
+      <div id="admin-slider-fill" class="admin-hp-fill" style="width: 100%;"></div>
+    </div>
+    <p class="admin-hp-amount">
+      <span id="admin-slider-amount">… €</span> of <span id="admin-slider-initial">… €</span>
+    </p>
+  </div>
+
+  {/* Modality breakdown list — D-04 */}
+  <div class="admin-card">
+    <p class="admin-card-label">Modality Breakdown</p>
+    <ul id="modality-breakdown" class="admin-breakdown-list">
+      <li><span>Pay in full</span><span data-modality="einmalzahlung">…</span></li>
+      <li><span>Installments</span><span data-modality="raten">…</span></li>
+      <li><span>Delay</span><span data-modality="aufschub">…</span></li>
+      <li><span>Open</span><span data-modality="open">…</span></li>
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,47 @@
+---
+// src/components/PaymentCardQr.astro
+// SEPA EPC QR-Code as inline <img> data URL — built at build-time, zero client JS.
+// Phase 3.1: Restyled to Barcelona Pixel Dawn — pixel-bordered card with
+// chunky white QR frame. Currently unused (Act3Payment owns the live QR block)
+// — kept on new tokens for reuse.
+// Per UI-SPEC §9.4, D-17, PAY-03.
+interface Props {
+  qrDataUrl: string;
+  holder: string;
+  amount: number;
+  purpose: string;
+}
+const { qrDataUrl, holder, amount, purpose } = Astro.props;
+---
+
+<article
+  class="bg-surface-container-lowest p-5 pixel-border-shadow border-l-8 border-l-tertiary flex flex-col items-center gap-3"
+  style="box-shadow: 6px 6px 0 var(--color-on-background);"
+  aria-labelledby="qr-card-heading"
+>
+  <h2
+    id="qr-card-heading"
+    class="font-[Syne] text-[18px] font-bold text-on-background self-start flex items-center gap-2"
+  >
+    <span class="font-[Press_Start_2P] text-[12px] text-tertiary">▣</span>
+    SEPA QR-Code
+  </h2>
+
+  <div class="bg-white p-2 border-4 border-on-background">
+    <img
+      src={qrDataUrl}
+      width="180"
+      height="180"
+      alt={`SEPA transfer to ${holder} for ${amount} euros with reference ${purpose}`}
+      class="pixel block"
+      style="max-width: 100%; height: auto; image-rendering: pixelated;"
+    />
+  </div>
+
+  <p class="font-[JetBrains_Mono] text-[12px] text-on-surface-variant uppercase tracking-wider font-bold">
+    SCAN WITH BANKING APP
+  </p>
+  <p class="font-[Space_Mono] text-[12px] italic text-on-surface-variant text-center">
+    IBAN, amount and reference are filled in automatically.
+  </p>
+</article>

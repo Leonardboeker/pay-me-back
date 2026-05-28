@@ -1,0 +1,416 @@
+---
+// src/components/Act3Payment.astro
+// Phase-3.1 Stitch-derived payment act ("Quest Edition").
+// Pixel-RPG inventory + quest screen with payment flow.
+// Wraps ModalitySelector + SuccessState (they own the worker integration).
+// Re-renders PayPal/Bank/QR cards with new Stitch styling (existing cards use legacy sand tokens).
+// IDs exposed for [token].astro IIFE scripts: #payment-section, #modality-section,
+// #success-state, #slider-fill, #slider-amount.
+import { formatAmount, formatIban, stripIban, buildPaypalUrl } from '../lib/format';
+import CopyButton from './CopyButton.astro';
+import ModalitySelector from './ModalitySelector.astro';
+import SuccessState from './SuccessState.astro';
+import Leaderboard from './Leaderboard.astro';
+
+interface Props {
+  name: string;
+  amount: number;
+  amountCents: number;
+  token: string;
+  backstory: string;
+  groupIndex: number;
+  groupSize: number;
+  daysRemaining: number;
+  paypalHandle: string;
+  holder: string;
+  iban: string;
+  bic: string;
+  purpose: string;
+  qrDataUrl: string;
+  // Phase 6 — standing-order QR variants for raten modality
+  qrStandingDataUrl2: string;
+  qrStandingDataUrl3: string;
+  firstAmount2: number;
+  firstAmount3: number;
+  lastAmount2: number;
+  lastAmount3: number;
+  initialTotalCents: number;
+  publicApiBase: string;
+}
+
+const {
+  name, amount, amountCents, token, backstory,
+  groupIndex, groupSize, daysRemaining,
+  paypalHandle, holder, iban, bic, purpose, qrDataUrl,
+  qrStandingDataUrl2, qrStandingDataUrl3,
+  firstAmount2, firstAmount3, lastAmount2, lastAmount3,
+  initialTotalCents,
+} = Astro.props;
+
+const amountFmt = formatAmount(amount);
+const totalEurosFmt = formatAmount(initialTotalCents / 100);
+const ibanDisplay = formatIban(iban);
+const ibanClip = stripIban(iban);
+const paypalUrl = buildPaypalUrl(paypalHandle, amount);
+const daysPadded = String(daysRemaining).padStart(2, '0');
+
+// "All 4" payload — same format as PaymentCardBank.astro
+const alle4 = `Recipient: ${holder}\nIBAN: ${ibanClip}\nBIC: ${bic}\nReference: ${purpose}`;
+
+// Raten preview (amount split into 3 monthly chunks, rounded)
+const ratenMonthly = formatAmount(Math.round((amount / 3) * 100) / 100);
+---
+
+<section
+  id="act-3-payment"
+  class="relative w-full min-h-[100dvh] paper-texture pb-32"
+  aria-label="Payment"
+>
+  {/* === Sticky pixel header === */}
+  <header class="sticky top-0 z-50 w-full bg-surface-container border-b-4 border-on-background h-16 flex justify-between items-center px-4 py-2">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-primary-fixed pixel-border-shadow overflow-hidden flex items-center justify-center" style="box-shadow: 2px 2px 0 var(--color-on-background);">
+        <img
+          src="/sprites/leo-character.png"
+          alt="Leo pixel sprite"
+          class="h-full w-auto object-cover pixelated animate-float"
+          style="object-position: 0% 0%; transform: scale(2); transform-origin: top left;"
+          aria-hidden="true"
+        />
+      </div>
+      <div class="flex flex-col leading-none">
+        <span class="font-[Press_Start_2P] text-[12px] md:text-[14px] text-primary tracking-tighter uppercase">
+          PAY LEO BACK
+        </span>
+        <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant mt-1 uppercase">
+          Hello Adventurer!
+        </span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 bg-primary-container px-3 py-1 pixel-border-shadow" style="box-shadow: 2px 2px 0 var(--color-on-background);">
+      <span class="font-[JetBrains_Mono] text-[12px] md:text-[14px] text-on-background uppercase tracking-wider font-bold">
+        {daysPadded} DAYS LEFT
+      </span>
+    </div>
+  </header>
+
+  {/* === Main content === */}
+  <main class="max-w-6xl mx-auto px-4 md:px-10 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+
+    {/* === Left column: greeting + backstory + group framing + HP bar + modality === */}
+    <div class="lg:col-span-7 flex flex-col gap-6">
+
+      {/* Greeting */}
+      <h2 class="font-[Syne] text-[24px] md:text-[32px] font-bold text-on-background leading-tight">
+        Hey {name} — quick thing.
+      </h2>
+
+      {/* Backstory scroll */}
+      <section class="bg-surface-container-low p-5 pixel-border-shadow relative">
+        <span class="block font-[JetBrains_Mono] text-[12px] text-primary uppercase tracking-widest mb-3 font-bold">
+          REMEMBER?
+        </span>
+        <p class="font-[Space_Mono] text-[16px] text-on-surface-variant leading-relaxed italic">
+          „{backstory}"
+        </p>
+        <div class="flex justify-end items-center gap-2 mt-4">
+          <div class="w-6 h-6 bg-secondary pixel-border-shadow flex items-center justify-center" style="box-shadow: 2px 2px 0 var(--color-on-background);">
+            <span class="font-[Press_Start_2P] text-[8px] text-on-secondary">L</span>
+          </div>
+          <p class="font-[JetBrains_Mono] text-[12px] text-primary font-bold uppercase">- Leo</p>
+        </div>
+      </section>
+
+      {/* Group framing — tiny text */}
+      <p class="font-[Space_Mono] text-[14px] text-on-surface-variant italic px-1">
+        You're {groupIndex} of {groupSize} who still owe me something — I know, I know.
+      </p>
+
+      {/* HP-style XP bar */}
+      <section class="bg-inverse-surface text-inverse-on-surface p-4 pixel-border-shadow flex flex-col gap-3" style="box-shadow: 4px 4px 0 var(--color-on-background);">
+        <div class="flex justify-between items-end">
+          <h3 class="font-[JetBrains_Mono] text-[12px] uppercase tracking-widest text-primary-fixed font-bold">
+            HP: DEBT-FREE
+          </h3>
+          <span class="font-[Space_Mono] text-[14px] font-bold">
+            Still open: <span id="slider-amount">{totalEurosFmt} €</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="font-[JetBrains_Mono] text-[12px] font-bold text-surface-container-highest">XP</span>
+          <div class="xp-bar-container h-8 flex-grow">
+            <div
+              id="slider-fill"
+              class="xp-bar-fill flex items-center justify-end pr-2"
+              style="width: var(--slider-percent, 100%);"
+            >
+              <span class="font-[JetBrains_Mono] text-[10px] text-on-background font-bold bg-surface/80 px-1 border-2 border-on-background">
+                LIVE
+              </span>
+            </div>
+          </div>
+        </div>
+        <p id="slider-zero" class="hidden font-[JetBrains_Mono] text-[12px] text-primary-fixed text-center">
+          0 € — everyone has paid!
+        </p>
+      </section>
+
+      {/* Modality selector — wrap in pixel-bordered container */}
+      <section>
+        <h3 class="font-[Syne] text-[24px] font-bold mb-4 flex items-center gap-2 text-on-background">
+          <span class="font-[Press_Start_2P] text-[14px] text-primary">⚔</span>
+          CHOOSE PAYMENT MODE
+        </h3>
+
+        {/* Modality preview cards (visual hint — actual radios live inside ModalitySelector below) */}
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <div class="bg-surface aspect-square p-2 pixel-border-shadow flex flex-col items-center justify-center gap-1" style="box-shadow: 4px 4px 0 var(--color-on-background);">
+            <span class="font-[Press_Start_2P] text-[20px] text-primary">●</span>
+            <span class="font-[JetBrains_Mono] text-[10px] uppercase font-bold text-center text-on-background">Once</span>
+            <span class="font-[JetBrains_Mono] text-[9px] text-on-surface-variant text-center">Now</span>
+          </div>
+          <div class="bg-surface aspect-square p-2 pixel-border-shadow flex flex-col items-center justify-center gap-1" style="box-shadow: 4px 4px 0 var(--color-on-background);">
+            <span class="font-[Press_Start_2P] text-[14px] text-primary tracking-tighter">●●●</span>
+            <span class="font-[JetBrains_Mono] text-[10px] uppercase font-bold text-center text-on-background">Splits</span>
+            <span class="font-[JetBrains_Mono] text-[9px] text-on-surface-variant text-center">3 × {ratenMonthly}€</span>
+          </div>
+          <div class="bg-surface aspect-square p-2 pixel-border-shadow flex flex-col items-center justify-center gap-1" style="box-shadow: 4px 4px 0 var(--color-on-background);">
+            <span class="font-[Press_Start_2P] text-[20px] text-primary">⧗</span>
+            <span class="font-[JetBrains_Mono] text-[10px] uppercase font-bold text-center text-on-background">Delay</span>
+            <span class="font-[JetBrains_Mono] text-[9px] text-on-surface-variant text-center">In 14 days</span>
+          </div>
+        </div>
+
+        {/* Real modality selector — owns the radios + worker integration */}
+        <div class="bg-surface-container-low p-4 pixel-border-shadow" style="box-shadow: 4px 4px 0 var(--color-on-background);">
+          <ModalitySelector
+            token={token}
+            name={name}
+            amountCents={amountCents}
+            qrStandingDataUrl2={qrStandingDataUrl2}
+            qrStandingDataUrl3={qrStandingDataUrl3}
+            firstAmount2={firstAmount2}
+            firstAmount3={firstAmount3}
+            lastAmount2={lastAmount2}
+            lastAmount3={lastAmount3}
+            holder={holder}
+            purpose={purpose}
+          />
+        </div>
+      </section>
+    </div>
+
+    {/* === Right column: payment methods (sticky on desktop) === */}
+    <aside class="lg:col-span-5 relative">
+      <div class="lg:sticky lg:top-24 flex flex-col gap-6">
+
+        <h3 class="font-[Syne] text-[24px] font-bold flex items-center gap-2 text-on-background">
+          <span class="font-[Press_Start_2P] text-[14px] text-primary">★</span>
+          CHOOSE METHOD
+        </h3>
+
+        {/* Payment section — wraps all 3 cards so state-IIFE can hide them on confirm */}
+        <div id="payment-section" class="flex flex-col gap-5">
+
+          {/* === PayPal — chunky orange CTA === */}
+          <article class="bg-primary-container p-5 pixel-border-shadow border-l-8 border-l-secondary" style="box-shadow: 6px 6px 0 var(--color-on-background);" aria-labelledby="paypal-h">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 bg-white pixel-inset flex items-center justify-center">
+                <span class="font-[Press_Start_2P] text-[14px] text-primary">P</span>
+              </div>
+              <div>
+                <h4 id="paypal-h" class="font-[Syne] text-[18px] font-bold text-on-background">PayPal.Me</h4>
+                <p class="font-[JetBrains_Mono] text-[10px] uppercase tracking-wider text-on-primary-container">Fast &amp; direct</p>
+              </div>
+            </div>
+            <a
+              id="paypal-cta"
+              href={paypalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="pixel-button block w-full text-center bg-secondary text-on-secondary font-[JetBrains_Mono] text-[14px] uppercase font-bold px-6 py-4 tracking-wider"
+              aria-label={`Pay ${amountFmt} euros with PayPal`}
+              data-paypal-handle={paypalHandle}
+              data-base-amount={amount}
+            >
+              PAY WITH PAYPAL — <span id="paypal-amount-out">{amountFmt}</span> €
+            </a>
+            <p class="font-[Space_Mono] text-[12px] italic text-on-primary-container mt-2">
+              Heads up: PayPal doesn't prefill the reference field.
+            </p>
+          </article>
+
+          {/* === Bank / IBAN === */}
+          <article class="bg-surface-container p-5 pixel-border-shadow border-l-8 border-l-primary relative overflow-hidden" style="box-shadow: 6px 6px 0 var(--color-on-background);" aria-labelledby="bank-h">
+            <div class="absolute inset-0 dither-bg opacity-20 pointer-events-none"></div>
+            <h4 id="bank-h" class="font-[Syne] text-[18px] font-bold text-on-background mb-4 flex items-center gap-2 relative z-10">
+              <span class="font-[Press_Start_2P] text-[12px] text-primary">$</span>
+              Classic bank transfer
+            </h4>
+
+            <div class="flex flex-col gap-2 relative z-10">
+              {/* Recipient */}
+              <div class="flex bg-surface-container-highest pixel-inset">
+                <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+                  <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Recipient</span>
+                  <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{holder}</span>
+                </div>
+                <CopyButton value={holder} label="Copy recipient" />
+              </div>
+              {/* IBAN */}
+              <div class="flex bg-surface-container-highest pixel-inset">
+                <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+                  <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">IBAN</span>
+                  <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{ibanDisplay}</span>
+                </div>
+                <CopyButton value={ibanClip} label="Copy IBAN" />
+              </div>
+              {/* BIC */}
+              <div class="flex bg-surface-container-highest pixel-inset">
+                <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+                  <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">BIC</span>
+                  <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{bic}</span>
+                </div>
+                <CopyButton value={bic} label="Copy BIC" />
+              </div>
+              {/* Reference */}
+              <div class="flex bg-surface-container-highest pixel-inset">
+                <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+                  <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Reference</span>
+                  <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{purpose}</span>
+                </div>
+                <CopyButton value={purpose} label="Copy reference" />
+              </div>
+              {/* Amount (info only) */}
+              <div class="flex bg-surface-container-highest pixel-inset">
+                <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+                  <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Amount</span>
+                  <span class="font-[Space_Mono] text-[14px] text-on-background font-bold">{amountFmt} €</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="relative z-10">
+              <CopyButton value={alle4} label="Copy all 4 fields" variant="wide" successLabel="✓ All 4 copied!" />
+            </div>
+          </article>
+
+          {/* === QR === */}
+          <article class="bg-surface-container-lowest p-5 pixel-border-shadow border-l-8 border-l-tertiary flex flex-col items-center gap-3" style="box-shadow: 6px 6px 0 var(--color-on-background);" aria-labelledby="qr-h">
+            <h4 id="qr-h" class="font-[Syne] text-[18px] font-bold text-on-background self-start flex items-center gap-2">
+              <span class="font-[Press_Start_2P] text-[12px] text-tertiary">▣</span>
+              SEPA QR-Code
+            </h4>
+            <div class="bg-white p-2 border-4 border-on-background">
+              <img
+                id="sepa-qr-img"
+                src={qrDataUrl}
+                width="180"
+                height="180"
+                alt={`SEPA transfer to ${holder} for ${amount} euros with reference ${purpose}`}
+                class="pixel block"
+                style="max-width: 100%; height: auto; image-rendering: pixelated;"
+                data-base-amount={amount}
+              />
+            </div>
+            <p class="font-[JetBrains_Mono] text-[12px] text-on-surface-variant uppercase tracking-wider font-bold">
+              SCAN WITH BANKING APP
+            </p>
+            <p class="font-[Space_Mono] text-[12px] italic text-on-surface-variant text-center">
+              IBAN, amount and reference are filled in automatically.
+            </p>
+
+            {/* Phase 8 — extra-amount hint (shown when gift-input > 0).
+                QR-Code is static and encodes only the debt amount.
+                Banner reminds the debtor to add the extra in their banking app. */}
+            <div
+              id="qr-extra-hint"
+              class="hidden w-full mt-2 p-3 text-left"
+              style="background: var(--color-primary-fixed); border: 3px solid var(--color-on-background); box-shadow: 3px 3px 0 var(--color-on-background);"
+            >
+              <p class="font-[JetBrains_Mono] text-[12px] font-bold uppercase tracking-wide mb-1" style="color: var(--color-on-background);">
+                ❤ Extra gift included
+              </p>
+              <p class="font-[Space_Mono] text-[12px] leading-snug" style="color: var(--color-on-background);">
+                QR now encodes <strong>{amount} € debt + <span id="qr-extra-amount">0</span> € extra = <span id="qr-total-amount">{amount}</span> €</strong>. Just scan and send.
+              </p>
+            </div>
+          </article>
+        </div>
+
+        {/* Success state — un-hidden by [token].astro state-IIFE if already confirmed.
+            Re-rendered here so it sits inside the act and is visually adjacent to the flow. */}
+        <SuccessState name={name} />
+
+        {/* Phase 7 — Leaderboard (hidden until payleo:success-shown fires or page-load detects existing confirm) */}
+        <Leaderboard token={token} />
+      </div>
+    </aside>
+  </main>
+
+  {/* === Footer === */}
+  <footer class="mt-12 w-full py-8 px-4 md:px-10 flex flex-col items-center gap-4 bg-inverse-surface border-t-4 border-on-background">
+    <div class="flex gap-6">
+      <a href="#" class="font-[JetBrains_Mono] text-[12px] text-inverse-on-surface hover:text-primary-fixed transition-colors uppercase tracking-widest" aria-label="Decorative — Log">LOG</a>
+      <a href="#" class="font-[JetBrains_Mono] text-[12px] text-inverse-on-surface hover:text-primary-fixed transition-colors uppercase tracking-widest" aria-label="Decorative — Save">SAVE</a>
+      <a href="#" class="font-[JetBrains_Mono] text-[12px] text-inverse-on-surface hover:text-primary-fixed transition-colors uppercase tracking-widest" aria-label="Decorative — Quit">QUIT</a>
+    </div>
+    <div class="font-[JetBrains_Mono] text-[14px] text-inverse-primary tracking-widest uppercase font-bold">
+      © PIXEL-QUEST
+    </div>
+    <p class="font-[Space_Mono] text-[12px] text-inverse-on-surface/70 italic text-center max-w-md">
+      Questions? <a href="mailto:you@example.com" class="underline">you@example.com</a> · Private. No tracking. Data deleted after the deadline.
+    </p>
+  </footer>
+</section>
+
+{/* Mobile-only sticky pay-CTA — slides in after Act 1, hides once Act 3 in view (VIS-03, D-08) */}
+<button
+  type="button"
+  id="sticky-pay-cta"
+  class="sticky-pay-cta sticky-pay-cta--hidden pixelated"
+  aria-label="Jump to payment section"
+>
+  Pay now <span aria-hidden="true">↓</span>
+</button>
+
+<script>
+  (() => {
+    const btn = document.getElementById('sticky-pay-cta');
+    const act1 = document.getElementById('act-1-intro');
+    const act3 = document.getElementById('act-3-payment');
+    const paymentSection = document.getElementById('payment-section');
+    if (!btn || !paymentSection) return;
+
+    // Smooth scroll to payment section on tap.
+    btn.addEventListener('click', () => {
+      paymentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Show after Act 1 scrolled out of view (top); hide once Act 3 in view.
+    const showAfterAct1 = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Act 1 leaving the viewport from the top → show sticky CTA.
+          if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+            btn.classList.remove('sticky-pay-cta--hidden');
+          }
+        });
+      },
+      { threshold: 0 }
+    );
+    const hideOnAct3 = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+            btn.classList.add('sticky-pay-cta--hidden');
+          }
+        });
+      },
+      { threshold: [0, 0.3, 0.6] }
+    );
+
+    if (act1) showAfterAct1.observe(act1);
+    if (act3) hideOnAct3.observe(act3);
+  })();
+</script>

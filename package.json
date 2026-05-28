@@ -1,0 +1,54 @@
+{
+  "name": "pay-me-back",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "prebuild": "node scripts/prebuild-debtors.mjs",
+    "preview": "astro preview",
+    "astro": "astro",
+    "gen-debtor": "node scripts/gen-debtor.mjs",
+    "test-deadline": "node scripts/test-deadline.mjs",
+    "verify-isolation": "node scripts/verify-isolation.mjs",
+    "test-format": "node --test scripts/test-format.mjs",
+    "test-paypal-url": "node --test scripts/test-paypal-url.mjs",
+    "test-sepa-qr": "node --test scripts/test-sepa-qr.mjs",
+    "test-framing": "node --test scripts/test-framing.mjs",
+    "gen-placeholder-sprites": "node scripts/gen-placeholder-sprites.mjs",
+    "gen-placeholder-character": "node scripts/gen-placeholder-character.mjs",
+    "lint:tone": "node scripts/verify-tone.mjs",
+    "verify:tone": "node scripts/verify-tone.mjs",
+    "verify:perf": "node scripts/verify-perf-budget.mjs",
+    "verify:dims": "node scripts/verify-sprite-dimensions.mjs",
+    "verify": "node scripts/verify-isolation.mjs && node scripts/verify-tone.mjs && node scripts/verify-perf-budget.mjs && node scripts/verify-sprite-dimensions.mjs",
+    "smoke": "node scripts/smoke-test.mjs",
+    "worker:dev": "wrangler dev --local",
+    "worker:deploy": "wrangler deploy",
+    "test:notify": "node --import tsx scripts/test-notify.mjs",
+    "test:worker": "node --test scripts/test-worker-confirm.mjs scripts/test-worker-slider.mjs scripts/test-worker-admin.mjs",
+    "test:do": "node --test scripts/test-do-confirm.mjs scripts/test-do-admin.mjs",
+    "test:notify-text": "node --import tsx --test scripts/test-notify-text.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "astro": "^6.3.8",
+    "nanoid": "^5.1.11",
+    "qrcode": "^1.5.4",
+    "sepa-payment-qr-code": "^2.0.2",
+    "tailwindcss": "^4.3.0",
+    "wrangler": "^4.95.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "pngjs": "^7.0.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-astro": "^0.14.1",
+    "tsx": "^4.22.3"
+  },
+  "overrides": {
+    "vite": "^7.0.0"
+  }
+}

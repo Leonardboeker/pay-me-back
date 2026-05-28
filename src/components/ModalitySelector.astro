@@ -1,0 +1,577 @@
+---
+// src/components/ModalitySelector.astro
+// Phase 3 D-05..D-09: 3 Radio-Cards + conditional sub-forms + Confirm-trigger button.
+// Phase 3.1: Restyled to Stitch's Barcelona Pixel Dawn — chunky pixel borders,
+// sunset-orange selected state, JetBrains Mono labels.
+// Phase 6 (D-01..D-07): adds hidden #standing-order-block inside #raten-form,
+// revealed once installments (2 or 3) AND startDate are both filled. Renders one
+// of two pre-built EPC-QR variants (split-by-2 or split-by-3) + bi-lingual
+// Klartext naming DKB · Sparkasse · N26 · Comdirect.
+interface Props {
+  token: string;
+  name: string;
+  amountCents: number;
+  qrStandingDataUrl2: string;
+  qrStandingDataUrl3: string;
+  firstAmount2: number;
+  firstAmount3: number;
+  lastAmount2: number;
+  lastAmount3: number;
+  holder: string;
+  purpose: string;
+}
+const {
+  token, amountCents,
+  qrStandingDataUrl2, qrStandingDataUrl3,
+  firstAmount2, firstAmount3,
+  lastAmount2, lastAmount3,
+  holder, purpose,
+} = Astro.props;
+const RATEN_MIN_DATE = '2026-05-27';
+const RATEN_MAX_DATE = '2026-07-15';
+
+// Phase 6 — Node-side precompute for the optional "last installment differs" note.
+const fmt = (n: number) => n.toFixed(2);
+const lastDiffers2 = Math.abs(lastAmount2 - firstAmount2) > 0.001;
+const lastDiffers3 = Math.abs(lastAmount3 - firstAmount3) > 0.001;
+const showLastNote = lastDiffers2 || lastDiffers3;
+---
+
+<section id="modality-section" class="mt-8 mb-8">
+  <h2
+    class="text-[24px] md:text-[32px] uppercase mb-6"
+    style="font-family: var(--font-headline); font-weight: 800; letter-spacing: -1px; color: var(--color-on-background);"
+  >
+    ★ What works for you?
+  </h2>
+
+  {/* 3 Radio-Cards: pixel-bordered, sand bg, sunset-orange on selected */}
+  <div class="flex flex-col md:flex-row gap-4">
+    {/* Card: Pay in full */}
+    <label
+      class="card-radio flex-1 flex items-start gap-4 p-5 cursor-pointer pixel-border transition-all"
+      style="background: var(--color-surface-container-low); border-color: var(--color-on-background);"
+    >
+      <input
+        type="radio"
+        name="modality"
+        value="einmalzahlung"
+        class="sr-only peer"
+        aria-label="Pay in full now"
+      />
+      <span
+        class="radio-indicator w-6 h-6 shrink-0 mt-1 relative before:content-[''] before:absolute before:inset-1 before:opacity-0 [.card-radio:has(:checked)_&]:before:opacity-100"
+        style="border: 3px solid var(--color-on-background); background: var(--color-surface);"
+        aria-hidden="true"
+      ></span>
+      <div>
+        <p
+          class="text-[14px] uppercase tracking-wide mb-1"
+          style="font-family: var(--font-label); font-weight: 700; color: var(--color-on-background);"
+        >
+          Pay in full now
+        </p>
+        <p
+          class="text-[14px]"
+          style="font-family: var(--font-body); color: var(--color-on-surface-variant);"
+        >
+          Already paid or will right now
+        </p>
+      </div>
+    </label>
+
+    {/* Card: Installments */}
+    <label
+      class="card-radio flex-1 flex items-start gap-4 p-5 cursor-pointer pixel-border transition-all"
+      style="background: var(--color-surface-container-low); border-color: var(--color-on-background);"
+    >
+      <input
+        type="radio"
+        name="modality"
+        value="raten"
+        class="sr-only peer"
+        aria-label="Installments"
+      />
+      <span
+        class="radio-indicator w-6 h-6 shrink-0 mt-1 relative before:content-[''] before:absolute before:inset-1 before:opacity-0 [.card-radio:has(:checked)_&]:before:opacity-100"
+        style="border: 3px solid var(--color-on-background); background: var(--color-surface);"
+        aria-hidden="true"
+      ></span>
+      <div>
+        <p
+          class="text-[14px] uppercase tracking-wide mb-1"
+          style="font-family: var(--font-label); font-weight: 700; color: var(--color-on-background);"
+        >
+          Installments
+        </p>
+        <p
+          class="text-[14px]"
+          style="font-family: var(--font-body); color: var(--color-on-surface-variant);"
+        >
+          In 2-3 installments by Jul 15
+        </p>
+      </div>
+    </label>
+
+    {/* Card: Delay */}
+    <label
+      class="card-radio flex-1 flex items-start gap-4 p-5 cursor-pointer pixel-border transition-all"
+      style="background: var(--color-surface-container-low); border-color: var(--color-on-background);"
+    >
+      <input
+        type="radio"
+        name="modality"
+        value="aufschub"
+        class="sr-only peer"
+        aria-label="Delay with reason"
+      />
+      <span
+        class="radio-indicator w-6 h-6 shrink-0 mt-1 relative before:content-[''] before:absolute before:inset-1 before:opacity-0 [.card-radio:has(:checked)_&]:before:opacity-100"
+        style="border: 3px solid var(--color-on-background); background: var(--color-surface);"
+        aria-hidden="true"
+      ></span>
+      <div>
+        <p
+          class="text-[14px] uppercase tracking-wide mb-1"
+          style="font-family: var(--font-label); font-weight: 700; color: var(--color-on-background);"
+        >
+          Delay with reason
+        </p>
+        <p
+          class="text-[14px]"
+          style="font-family: var(--font-body); color: var(--color-on-surface-variant);"
+        >
+          Need more time — tell Leo
+        </p>
+      </div>
+    </label>
+  </div>
+
+  {/* Conditional Raten-form */}
+  <div
+    id="raten-form"
+    class="hidden mt-4 p-5 pixel-border"
+    style="background: var(--color-surface-container-low); border-color: var(--color-on-background);"
+  >
+    <label
+      for="installments-input"
+      class="block text-[12px] uppercase tracking-wide mb-2"
+      style="font-family: var(--font-label); font-weight: 700; color: var(--color-on-background);"
+    >
+      Number of installments
+    </label>
+    <input
+      id="installments-input"
+      type="number"
+      name="installments"
+      min="2"
+      max="3"
+      inputmode="numeric"
+      placeholder="2 or 3"
+      aria-label="Number of installments (2 or 3)"
+      class="w-full min-h-11 px-3 py-2"
+      style="font-family: var(--font-body); background: var(--color-surface); border: 3px solid var(--color-on-background); color: var(--color-on-background);"
+    />
+    <label
+      for="startdate-input"
+      class="block text-[12px] uppercase tracking-wide mb-2 mt-4"
+      style="font-family: var(--font-label); font-weight: 700; color: var(--color-on-background);"
+    >
+      Preferred start date
+    </label>
+    <input
+      id="startdate-input"
+      type="date"
+      name="startDate"
+      min={RATEN_MIN_DATE}
+      max={RATEN_MAX_DATE}
+      aria-label="Preferred start date"
+      class="w-full min-h-11 px-3 py-2"
+      style="font-family: var(--font-body); background: var(--color-surface); border: 3px solid var(--color-on-background); color: var(--color-on-background);"
+    />
+    <p class="text-[12px] mt-2" style="font-family: var(--font-body); color: var(--color-on-surface-variant);">
+      You can also just send it, Leo will check in later.
+    </p>
+
+    {/* Phase 6 — Standing-Order QR block (hidden until installments + startDate both valid) */}
+    <div
+      id="standing-order-block"
+      class="hidden mt-6 p-6 pixel-border flex flex-col items-center gap-6"
+      style="background: var(--color-surface-container-lowest); border-color: var(--color-on-background); transition: opacity 200ms ease-out;"
+      data-qr-standing-order
+    >
+      <h3
+        class="text-[15px] uppercase tracking-wide self-start font-bold pb-3 mb-1 w-full border-b-2"
+        style="font-family: var(--font-label); color: var(--color-on-background); border-color: var(--color-on-background);"
+      >
+        ▣ Standing-Order QR
+      </h3>
+
+      <div class="bg-white p-3 border-4" style="border-color: var(--color-on-background);">
+        <img
+          id="standing-order-qr-2"
+          src={qrStandingDataUrl2}
+          width="180"
+          height="180"
+          alt={`SEPA transfer to ${holder} for ${fmt(firstAmount2)} euros with reference ${purpose}`}
+          class="pixel block hidden"
+          style="max-width: 100%; height: auto; image-rendering: pixelated;"
+          data-installments="2"
+        />
+        <img
+          id="standing-order-qr-3"
+          src={qrStandingDataUrl3}
+          width="180"
+          height="180"
+          alt={`SEPA transfer to ${holder} for ${fmt(firstAmount3)} euros with reference ${purpose}`}
+          class="pixel block hidden"
+          style="max-width: 100%; height: auto; image-rendering: pixelated;"
+          data-installments="3"
+        />
+      </div>
+
+      {/* Klartext block — exact D-05 copy. Lines 1/2/4 static, line 3 has placeholders interpolated by JS. */}
+      <ol
+        class="text-[14px] leading-[1.7] self-start list-decimal pl-6 space-y-2 w-full"
+        style="font-family: var(--font-body); color: var(--color-on-surface-variant);"
+      >
+        <li>Scan with your banking app (DKB · Sparkasse · N26 · Comdirect).</li>
+        <li>Tap "Save as standing order" / "Als Dauerauftrag speichern" after the transfer is filled in.</li>
+        <li data-klartext-line-3>Set monthly frequency, <span data-installments-out>—</span>× occurrences, start <span data-startdate-out>—</span>.</li>
+        <li>Other banks: same menu, slightly different wording.</li>
+      </ol>
+
+      {/* Optional last-installment-differs note (D-02 cents-adjustment) */}
+      {showLastNote && (
+        <p
+          id="last-installment-note"
+          class="hidden text-[13px] italic self-start pt-2 mt-1 w-full border-t-2"
+          style="font-family: var(--font-body); color: var(--color-on-surface-variant); border-color: var(--color-outline-variant, var(--color-on-background));"
+          data-last-2={lastDiffers2 ? fmt(lastAmount2) : ''}
+          data-last-3={lastDiffers3 ? fmt(lastAmount3) : ''}
+        >
+          Last installment: <span data-last-amount>—</span> € (cents-adjustment).
+        </p>
+      )}
+    </div>
+  </div>
+
+  {/* Conditional Aufschub-form */}
+  <div
+    id="aufschub-form"
+    class="hidden mt-4 p-5 pixel-border"
+    style="background: var(--color-surface-container-low); border-color: var(--color-on-background);"
+  >
+    <label
+      for="reason-textarea"
+      class="block text-[12px] uppercase tracking-wide mb-2"
+      style="font-family: var(--font-label); font-weight: 700; color: var(--color-on-background);"
+    >
+      What's going on?
+    </label>
+    <textarea
+      id="reason-textarea"
+      name="reason"
+      rows="4"
+      maxlength="500"
+      placeholder="(optional) Write what's going on — Leo reads it"
+      aria-label="Reason (optional, max 500 characters)"
+      class="w-full px-3 py-2 resize-none"
+      style="font-family: var(--font-body); background: var(--color-surface); border: 3px solid var(--color-on-background); color: var(--color-on-background);"
+    ></textarea>
+  </div>
+
+  {/* Phase 8 — optional "give a bit extra" gift input.
+      Hidden by default. Reveals when any modality is selected EXCEPT aufschub.
+      Capped at 1000€ to prevent fat-finger / abuse. */}
+  <div
+    id="gift-block"
+    class="hidden mt-6 p-4 pixel-border"
+    style="background: var(--color-surface-container-low); border-color: var(--color-on-background);"
+  >
+    <label
+      for="gift-input"
+      class="block text-[12px] uppercase tracking-wide mb-2"
+      style="font-family: var(--font-label); font-weight: 700; color: var(--color-on-background);"
+    >
+      ❤ Want to add a little extra? (optional)
+    </label>
+    <div class="flex items-center gap-2">
+      <input
+        id="gift-input"
+        type="number"
+        name="extra"
+        min="0"
+        max="1000"
+        step="1"
+        inputmode="numeric"
+        placeholder="0"
+        aria-label="Extra amount in euros (optional, max 1000)"
+        class="flex-1 min-h-11 px-3 py-2"
+        style="font-family: var(--font-body); background: var(--color-surface); border: 3px solid var(--color-on-background); color: var(--color-on-background);"
+      />
+      <span
+        class="text-[16px] font-bold"
+        style="font-family: var(--font-label); color: var(--color-on-background);"
+      >€</span>
+    </div>
+    <p class="text-[12px] mt-2" style="font-family: var(--font-body); color: var(--color-on-surface-variant);">
+      No pressure — only if you feel like supporting the trip a bit extra.
+    </p>
+  </div>
+
+  {/* Confirm-trigger button — pixel button style */}
+  <button
+    id="confirm-trigger"
+    type="button"
+    disabled
+    class="mt-6 w-full px-6 py-4 pixel-button uppercase tracking-wide disabled:opacity-40 disabled:cursor-not-allowed"
+    style="font-family: var(--font-pixel); font-size: 14px; background: var(--color-primary-container); color: var(--color-on-background);"
+  >
+    ► I've sent it
+  </button>
+</section>
+
+<style>
+  /* Selected state — sunset orange tint + thicker shadow */
+  .card-radio:has(:checked) {
+    background: var(--color-primary-fixed) !important;
+    box-shadow: 6px 6px 0 0 var(--color-on-background);
+    transform: translate(-2px, -2px);
+  }
+  .card-radio:has(:checked) .radio-indicator::before {
+    background: var(--color-primary-container);
+  }
+  .card-radio:hover:not(:has(:checked)) {
+    background: var(--color-surface-container) !important;
+  }
+</style>
+
+<script define:vars={{ token, amountCents }}>
+  // Modality-Selector behavior: unchanged from original.
+  const radios = document.querySelectorAll('input[name="modality"]');
+  const ratenForm = document.getElementById('raten-form');
+  const aufschubForm = document.getElementById('aufschub-form');
+  const trigger = document.getElementById('confirm-trigger');
+
+  const MODALITY_LABELS = {
+    einmalzahlung: "you've sent the money",
+    raten: "you're paying in installments",
+    aufschub: "you need a bit more time",
+  };
+
+  // Phase 8 — gift-block visibility: shown for einmalzahlung+raten, hidden for aufschub.
+  // IMPORTANT: this <script> in ModalitySelector runs BEFORE Act3Payment's later DOM
+  // (SEPA-QR card + extra-hint banner) is parsed — so getElementById must be LAZY,
+  // called inside the handler, not cached at script load (would be null).
+  const giftBlock = document.getElementById('gift-block');
+  const giftInput = document.getElementById('gift-input');
+  const baseAmount = amountCents / 100; // EUR
+  let baseQrSrc = '';
+  let qrFetchTimer = null;
+  let lastQrExtraCents = 0;
+
+  async function refreshDynamicQr(extraCents) {
+    const sepaQrImg = document.getElementById('sepa-qr-img');
+    if (!sepaQrImg) return;
+    // Capture original build-time src on first call (so we can restore it when extra=0).
+    if (!baseQrSrc) baseQrSrc = sepaQrImg.getAttribute('src') ?? '';
+    if (extraCents === 0) {
+      sepaQrImg.setAttribute('src', baseQrSrc);
+      lastQrExtraCents = 0;
+      return;
+    }
+    if (extraCents === lastQrExtraCents) return;
+    try {
+      const apiBase = window.__API_BASE || '';
+      const res = await fetch(`${apiBase}/api/qr?token=${encodeURIComponent(token)}&extra=${extraCents}`, {
+        headers: { 'Cache-Control': 'no-store' },
+      });
+      if (!res.ok) {
+        console.warn('[payleo] dynamic QR fetch failed:', res.status);
+        return;
+      }
+      const data = await res.json();
+      if (data.dataUrl) {
+        sepaQrImg.setAttribute('src', data.dataUrl);
+        lastQrExtraCents = extraCents;
+      }
+    } catch (err) {
+      console.error('[payleo] dynamic QR error:', err);
+    }
+  }
+
+  function updateQrExtraHint() {
+    // Lazy lookups — these elements live in Act3Payment.astro further down the DOM.
+    const qrExtraHint = document.getElementById('qr-extra-hint');
+    const qrExtraAmountOut = document.getElementById('qr-extra-amount');
+    const qrTotalAmountOut = document.getElementById('qr-total-amount');
+    const paypalCta = document.getElementById('paypal-cta');
+    const paypalAmountOut = document.getElementById('paypal-amount-out');
+
+    const selected = document.querySelector('input[name="modality"]:checked')?.value;
+    const giftEuros = parseInt(giftInput?.value || '0', 10);
+    const showHint = selected && selected !== 'aufschub' && giftEuros > 0;
+    if (qrExtraHint) {
+      qrExtraHint.classList.toggle('hidden', !showHint);
+    }
+    const effectiveAmount =
+      selected !== 'aufschub' ? baseAmount + Math.max(0, giftEuros) : baseAmount;
+    if (qrExtraAmountOut) qrExtraAmountOut.textContent = String(Math.max(0, giftEuros));
+    if (qrTotalAmountOut) qrTotalAmountOut.textContent = String(baseAmount + Math.max(0, giftEuros));
+
+    // Phase 8 — sync PayPal.me link to effective amount.
+    if (paypalCta) {
+      const handle = paypalCta.getAttribute('data-paypal-handle');
+      if (handle) {
+        const amtStr = effectiveAmount % 1 === 0 ? String(Math.trunc(effectiveAmount)) : effectiveAmount.toFixed(2);
+        paypalCta.setAttribute('href', `https://paypal.me/${handle}/${amtStr}EUR`);
+        paypalCta.setAttribute('aria-label', `Pay ${amtStr} euros with PayPal`);
+      }
+    }
+    if (paypalAmountOut) {
+      paypalAmountOut.textContent = effectiveAmount % 1 === 0
+        ? String(Math.trunc(effectiveAmount))
+        : effectiveAmount.toFixed(2);
+    }
+
+    // Debounced dynamic-QR refresh (300ms after last keystroke).
+    const targetExtraCents =
+      selected !== 'aufschub' ? Math.max(0, giftEuros) * 100 : 0;
+    clearTimeout(qrFetchTimer);
+    qrFetchTimer = setTimeout(() => refreshDynamicQr(targetExtraCents), 300);
+  }
+
+  radios.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      const val = radio.value;
+      ratenForm?.classList.toggle('hidden', val !== 'raten');
+      aufschubForm?.classList.toggle('hidden', val !== 'aufschub');
+      giftBlock?.classList.toggle('hidden', val === 'aufschub');
+      if (trigger) trigger.removeAttribute('disabled');
+      updateQrExtraHint();
+    });
+  });
+
+  giftInput?.addEventListener('input', updateQrExtraHint);
+  giftInput?.addEventListener('change', updateQrExtraHint);
+
+  // Phase 6 — Standing-Order QR + Klartext conditional reveal.
+  // Block reveals iff: raten radio checked AND installments ∈ {2,3} AND startDate non-empty.
+  // QR image swaps based on installments value (data-installments="2" vs "3").
+  // Klartext line 3 placeholders get interpolated from the same two inputs.
+  // Aufschub deselects raten → block also hides (D-06).
+  const standingBlock = document.getElementById('standing-order-block');
+  const qr2 = document.getElementById('standing-order-qr-2');
+  const qr3 = document.getElementById('standing-order-qr-3');
+  const instOut = document.querySelector('[data-installments-out]');
+  const dateOut = document.querySelector('[data-startdate-out]');
+  const lastNote = document.getElementById('last-installment-note');
+  const lastAmountOut = document.querySelector('[data-last-amount]');
+  const installmentsEl = document.getElementById('installments-input');
+  const startDateEl = document.getElementById('startdate-input');
+
+  function updateStandingOrder() {
+    if (!standingBlock || !installmentsEl || !startDateEl) return;
+    const ratenChecked = document.querySelector('input[name="modality"]:checked')?.value === 'raten';
+    const inst = parseInt(installmentsEl.value, 10);
+    const date = startDateEl.value;
+    const validInst = inst === 2 || inst === 3;
+    const validDate = typeof date === 'string' && date.length > 0;
+
+    if (ratenChecked && validInst && validDate) {
+      qr2?.classList.toggle('hidden', inst !== 2);
+      qr3?.classList.toggle('hidden', inst !== 3);
+      if (instOut) instOut.textContent = String(inst);
+      if (dateOut) dateOut.textContent = date;
+      if (lastNote && lastAmountOut) {
+        const lastVal = inst === 2 ? lastNote.dataset.last2 : lastNote.dataset.last3;
+        if (lastVal) {
+          lastAmountOut.textContent = lastVal;
+          lastNote.classList.remove('hidden');
+        } else {
+          lastNote.classList.add('hidden');
+        }
+      }
+      standingBlock.classList.remove('hidden');
+    } else {
+      standingBlock.classList.add('hidden');
+      qr2?.classList.add('hidden');
+      qr3?.classList.add('hidden');
+    }
+  }
+
+  installmentsEl?.addEventListener('input', updateStandingOrder);
+  startDateEl?.addEventListener('input', updateStandingOrder);
+  startDateEl?.addEventListener('change', updateStandingOrder);
+  radios.forEach((r) => r.addEventListener('change', updateStandingOrder));
+
+  trigger?.addEventListener('click', () => {
+    const selected = document.querySelector('input[name="modality"]:checked')?.value;
+    if (!selected) return;
+    if (typeof window.__openConfirmModal === 'function') {
+      window.__openConfirmModal(MODALITY_LABELS[selected] ?? selected);
+    }
+  });
+
+  window.addEventListener('payleo:confirmed', async () => {
+    if (trigger) trigger.setAttribute('disabled', 'true');
+
+    const selected = document.querySelector('input[name="modality"]:checked')?.value;
+    if (!selected) return;
+
+    const payload = { token, modality: selected };
+    if (selected === 'raten') {
+      const instEl = document.querySelector('input[name="installments"]');
+      const startEl = document.querySelector('input[name="startDate"]');
+      const inst = instEl?.value;
+      const start = startEl?.value;
+      if (inst) payload.installments = parseInt(inst, 10);
+      if (start) payload.startDate = start;
+    }
+    if (selected === 'aufschub') {
+      const reasonEl = document.querySelector('textarea[name="reason"]');
+      const reason = reasonEl?.value?.trim();
+      if (reason) payload.reason = reason;
+    }
+    // Phase 8 — optional extra gift (server caps at 100000 cents = 1000 €,
+    // ignores for aufschub modality). Parse as integer euros, convert to cents.
+    if (selected !== 'aufschub') {
+      const giftEuros = parseInt(giftInput?.value || '0', 10);
+      if (giftEuros > 0) payload.extraCents = giftEuros * 100;
+    }
+
+    try {
+      const apiBase = window.__API_BASE || '';
+      const res = await fetch(`${apiBase}/api/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok && data.confirmed) {
+        document.getElementById('modality-section')?.classList.add('hidden');
+        document.getElementById('payment-section')?.classList.add('hidden');
+        const successEl = document.getElementById('success-state');
+        if (successEl) {
+          successEl.classList.remove('hidden');
+          if (selected === 'aufschub') {
+            const body = successEl.querySelector('[data-success-body]');
+            if (body && successEl.dataset.aufschubBody) {
+              body.textContent = successEl.dataset.aufschubBody;
+            }
+          }
+        }
+        // Phase 7 — notify Leaderboard component that success-state is now visible.
+        // Leaderboard's privacy gate will silently drop aufschub (403 from /api/leaderboard).
+        window.dispatchEvent(new CustomEvent('payleo:success-shown', { detail: { modality: selected } }));
+      } else {
+        trigger?.removeAttribute('disabled');
+        console.error('[payleo] confirm failed:', data.error);
+      }
+    } catch (err) {
+      trigger?.removeAttribute('disabled');
+      console.error('[payleo] network error:', err);
+    }
+  });
+</script>

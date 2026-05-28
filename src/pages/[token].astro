@@ -1,0 +1,205 @@
+---
+// src/pages/[token].astro
+// Phase-2 full personalized debtor page.
+// Note: ROADMAP SC #2 wording says "Tage/Stunden/Minuten" countdown granularity,
+// but D-11 (more specific + more recent) supersedes to days-only. SC #2 is satisfied
+// by days-only Pixel-Countdown per D-11. (Checker F-02 resolution.)
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { debtors, type Debtor } from '../data/debtors';
+import { isPostDeadline, getDaysRemaining } from '../lib/deadline';
+import { buildPurpose } from '../lib/purpose';
+import { buildEpcQrDataUrl } from '../lib/sepa-qr';
+import PostDeadlinePage from '../components/PostDeadlinePage.astro';
+// Phase 3.1 — Stitch-derived 3-act layout
+import Act1Intro from '../components/Act1Intro.astro';
+import Act2Reveal from '../components/Act2Reveal.astro';
+import Act3Payment from '../components/Act3Payment.astro';
+// Phase 3 — confirm modal singleton (used by Act3Payment via ModalitySelector)
+import ConfirmModal from '../components/ConfirmModal.astro';
+
+export const prerender = true;
+
+export const getStaticPaths = (() => {
+  return debtors.map((d) => ({
+    params: { token: d.token },
+    props: { debtor: d },
+  }));
+}) satisfies GetStaticPaths;
+
+const { debtor } = Astro.props as { debtor: Debtor };
+// Cross-debtor isolation: only this debtor's data is in scope.
+// Other debtors are not imported or referenced below. (DEBT-04)
+
+const postDeadline = isPostDeadline();
+const daysRemaining = getDaysRemaining();
+
+const paypalHandle = import.meta.env.PAYLEO_PAYPAL_HANDLE;
+const holder = import.meta.env.PAYLEO_BANK_HOLDER;
+const iban = import.meta.env.PAYLEO_BANK_IBAN;
+const bic = import.meta.env.PAYLEO_BANK_BIC;
+
+// Build-time guard — prebuild-debtors.mjs already hard-fails, but Astro
+// frontmatter also throws to surface missing-var clearly in build log.
+if (!paypalHandle || !holder || !iban || !bic) {
+  throw new Error('[token].astro: missing PAYLEO_PAYPAL_HANDLE / PAYLEO_BANK_* env vars — prebuild should have caught this');
+}
+
+const purpose = buildPurpose(debtor.name);
+
+// EPC-QR built at build-time — inline data URL, zero client JS (PAY-03)
+const qrDataUrl = await buildEpcQrDataUrl({ holder, iban, bic, amount: debtor.amount, purpose });
+
+// Phase 6: pre-build standing-order QR variants for raten modality.
+// D-02 round-down with last-installment-carry:
+//   firstCents = floor(totalCents / n)        → repeats in standing-order
+//   lastCents  = totalCents - firstCents*(n-1) → only last transfer; shown in Klartext if differs
+// Both variants are pre-rendered at build time (Node-side, zero client cost).
+// Client JS toggles which <img> is visible based on user-entered installments value.
+const totalCents = Math.round(debtor.amount * 100);
+
+const firstCents2 = Math.floor(totalCents / 2);
+const firstAmount2 = firstCents2 / 100;
+const lastAmount2 = (totalCents - firstCents2) / 100;
+
+const firstCents3 = Math.floor(totalCents / 3);
+const firstAmount3 = firstCents3 / 100;
+const lastAmount3 = (totalCents - firstCents3 * 2) / 100;
+
+const qrStandingDataUrl2 = await buildEpcQrDataUrl({ holder, iban, bic, amount: firstAmount2, purpose });
+const qrStandingDataUrl3 = await buildEpcQrDataUrl({ holder, iban, bic, amount: firstAmount3, purpose });
+
+// Phase 3 — slider-fill needs initial total to compute proportional shrink %.
+// Build-time sum of all debtor amounts; passed via define:vars to the slider-fetch IIFE.
+const initialTotalCents = debtors.reduce((sum, d) => sum + Math.round(d.amount * 100), 0);
+// PUBLIC_API_BASE is exposed to client scripts at build time by Astro (PUBLIC_* prefix).
+// Empty string in dev triggers the production-URL fallback inside the script block.
+const publicApiBase = import.meta.env.PUBLIC_API_BASE ?? '';
+---
+
+<BaseLayout title={`Hey ${debtor.name} — quick thing`}>
+  <!-- LCP optimization: preload Leo studio scene (Act 1 hero) -->
+  <link rel="preload" as="image" href="/sprites/leo-studio.png" slot="head" />
+  <link rel="preload" as="image" href="/sprites/leo-character.png" slot="head" />
+
+  <!-- Aria live region for copy-button announcements -->
+  <div id="copy-live" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+  {postDeadline ? (
+    <PostDeadlinePage
+      name={debtor.name}
+      amount={debtor.amount}
+      paypalHandle={paypalHandle}
+      holder={holder}
+      iban={iban}
+      bic={bic}
+      purpose={purpose}
+      qrDataUrl={qrDataUrl}
+    />
+  ) : (
+    <>
+      {/* Visually hidden h1 for screen readers — Act 1 handles visual greeting */}
+      <h1 class="sr-only">Hey {debtor.name} — quick thing.</h1>
+
+      {/* Single-page 3-act sequence with scroll-revealed transitions (Stitch design) */}
+      <Act1Intro name={debtor.name} />
+
+      <Act2Reveal
+        name={debtor.name}
+        amount={debtor.amount}
+        groupIndex={debtors.findIndex((d) => d.token === debtor.token) + 1}
+        groupSize={debtors.length}
+      />
+
+      <Act3Payment
+        name={debtor.name}
+        amount={debtor.amount}
+        amountCents={Math.round(debtor.amount * 100)}
+        token={debtor.token}
+        backstory={debtor.backstory}
+        groupIndex={debtors.findIndex((d) => d.token === debtor.token) + 1}
+        groupSize={debtors.length}
+        daysRemaining={daysRemaining}
+        paypalHandle={paypalHandle}
+        holder={holder}
+        iban={iban}
+        bic={bic}
+        purpose={purpose}
+        qrDataUrl={qrDataUrl}
+        qrStandingDataUrl2={qrStandingDataUrl2}
+        qrStandingDataUrl3={qrStandingDataUrl3}
+        firstAmount2={firstAmount2}
+        firstAmount3={firstAmount3}
+        lastAmount2={lastAmount2}
+        lastAmount3={lastAmount3}
+        initialTotalCents={initialTotalCents}
+        publicApiBase={publicApiBase}
+      />
+
+      {/* Phase 3 — confirm modal singleton (hidden until ModalitySelector triggers it) */}
+      <ConfirmModal />
+
+      {/* Phase 3 — state-fetch IIFE: hide modality + payment, show success on reload if already confirmed */}
+      <script define:vars={{ token: debtor.token, publicApiBase }}>
+        // Set global API base for ModalitySelector's payleo:confirmed handler.
+        // Empty PUBLIC_API_BASE falls back to same-origin (Worker route mounted on same host).
+        window.__API_BASE = publicApiBase || '';
+        (async () => {
+          try {
+            const res = await fetch(
+              `${window.__API_BASE}/api/state?token=${encodeURIComponent(token)}`
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.confirmed) {
+              document.getElementById('modality-section')?.classList.add('hidden');
+              document.getElementById('payment-section')?.classList.add('hidden');
+              const successEl = document.getElementById('success-state');
+              if (successEl) {
+                successEl.classList.remove('hidden');
+                if (data.modality === 'aufschub') {
+                  const body = successEl.querySelector('[data-success-body]');
+                  if (body && successEl.dataset.aufschubBody) {
+                    body.textContent = successEl.dataset.aufschubBody;
+                  }
+                }
+              }
+            }
+          } catch {
+            // Silent fail — modality section stays visible (RESEARCH Q5)
+          }
+        })();
+      </script>
+
+      {/* Phase 3 — slider-fetch IIFE: update slider fill + amount from /api/slider */}
+      <script define:vars={{ initialTotalCents }}>
+        (async () => {
+          try {
+            const apiBase = window.__API_BASE || '';
+            const res = await fetch(`${apiBase}/api/slider`);
+            if (!res.ok) return;
+            const { total_cents } = await res.json();
+            const fillEl = document.getElementById('slider-fill');
+            const amountEl = document.getElementById('slider-amount');
+            const zeroEl = document.getElementById('slider-zero');
+            if (amountEl) amountEl.textContent = `${Math.round(total_cents / 100)} €`;
+            // Proportional shrink: fill width = total_cents / initialTotalCents
+            if (initialTotalCents > 0 && fillEl) {
+              const percent = Math.max(
+                0,
+                Math.min(100, (total_cents / initialTotalCents) * 100)
+              );
+              fillEl.style.setProperty('--slider-percent', `${percent}%`);
+            }
+            if (total_cents === 0 && zeroEl) {
+              zeroEl.classList.remove('hidden');
+              fillEl?.classList.add('hidden');
+            }
+          } catch {
+            // Silent fail — static placeholder stays
+          }
+        })();
+      </script>
+    </>
+  )}
+</BaseLayout>

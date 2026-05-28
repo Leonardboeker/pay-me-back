@@ -1,0 +1,86 @@
+---
+// src/components/PaymentCardBank.astro
+// IBAN + BIC + Holder + Reference with individual CopyButtons + "Alle 4".
+// Phase 3.1: Restyled to Barcelona Pixel Dawn — pixel-bordered card with
+// inset pixel-bevel field rows. Currently unused (Act3Payment owns the live bank
+// block) — kept on new tokens for reuse.
+// Per UI-SPEC §9.3, D-14..D-16. PAY-02.
+import { formatIban, stripIban, formatAmount } from '../lib/format';
+import CopyButton from './CopyButton.astro';
+
+interface Props {
+  holder: string;
+  iban: string;
+  bic: string;
+  purpose: string;
+  amount: number;
+}
+const { holder, iban, bic, purpose, amount } = Astro.props;
+const ibanDisplay = formatIban(iban);
+const ibanClip = stripIban(iban);
+
+// "Alle 4 kopieren" value: multi-line plaintext (per UI-SPEC §9.3)
+const alle4 = `Recipient: ${holder}\nIBAN: ${ibanClip}\nBIC: ${bic}\nReference: ${purpose}`;
+---
+
+<article
+  class="bg-surface-container p-5 pixel-border-shadow border-l-8 border-l-primary relative overflow-hidden"
+  style="box-shadow: 6px 6px 0 var(--color-on-background);"
+  aria-labelledby="bank-card-heading"
+>
+  <div class="absolute inset-0 dither-bg opacity-20 pointer-events-none"></div>
+
+  <h2
+    id="bank-card-heading"
+    class="font-[Syne] text-[18px] font-bold text-on-background mb-4 flex items-center gap-2 relative z-10"
+  >
+    <span class="font-[Press_Start_2P] text-[12px] text-primary">$</span>
+    Classic bank transfer
+  </h2>
+
+  <div class="flex flex-col gap-2 relative z-10">
+    {/* Recipient */}
+    <div class="flex bg-surface-container-highest pixel-inset">
+      <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+        <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Recipient</span>
+        <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{holder}</span>
+      </div>
+      <CopyButton value={holder} label="Copy recipient" />
+    </div>
+    {/* IBAN */}
+    <div class="flex bg-surface-container-highest pixel-inset">
+      <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+        <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">IBAN</span>
+        <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{ibanDisplay}</span>
+      </div>
+      <CopyButton value={ibanClip} label="Copy IBAN" />
+    </div>
+    {/* BIC */}
+    <div class="flex bg-surface-container-highest pixel-inset">
+      <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+        <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">BIC</span>
+        <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{bic}</span>
+      </div>
+      <CopyButton value={bic} label="Copy BIC" />
+    </div>
+    {/* Reference */}
+    <div class="flex bg-surface-container-highest pixel-inset">
+      <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+        <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Reference</span>
+        <span class="font-[Space_Mono] text-[14px] text-on-background truncate select-all">{purpose}</span>
+      </div>
+      <CopyButton value={purpose} label="Copy reference" />
+    </div>
+    {/* Betrag (info only — no copy button per UI-SPEC §9.3) */}
+    <div class="flex bg-surface-container-highest pixel-inset">
+      <div class="flex-grow p-2 flex flex-col justify-center min-w-0">
+        <span class="font-[JetBrains_Mono] text-[10px] text-on-surface-variant uppercase">Amount</span>
+        <span class="font-[Space_Mono] text-[14px] text-on-background font-bold">{formatAmount(amount)} €</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative z-10">
+    <CopyButton value={alle4} label="Copy all 4 fields" variant="wide" successLabel="✓ All 4 copied!" />
+  </div>
+</article>

@@ -1,0 +1,206 @@
+---
+// src/components/Act2Reveal.astro
+// Phase-3.1 Stitch-derived reveal screen.
+// Cosmic space scene: spinning Earth + orbiting plane + orbiting satellite + twinkling stars.
+// Dialog box with typewriter text reveal. "TRAVELER" name tag.
+// CTA "How do I pay this?" → smooth-scrolls to Act 3.
+
+interface Props {
+  name: string;
+  amount: number;
+  groupIndex: number; // "Du bist X von Y"
+  groupSize: number;
+}
+const { name, amount, groupIndex, groupSize } = Astro.props;
+
+const amountFmt = amount.toLocaleString('en-US', {
+  minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+  maximumFractionDigits: 2,
+});
+---
+
+<section
+  id="act-2-reveal"
+  class="relative w-full min-h-[100dvh] flex flex-col items-center pt-8 pb-16 overflow-hidden"
+  style="background-color: #0a0418; background-image: linear-gradient(180deg, #0a0418 0%, #1a0a2e 50%, #2d1640 100%);"
+  aria-label="Why are you here?"
+  data-debtor-amount={amountFmt}
+  data-group-index={groupIndex}
+  data-group-size={groupSize}
+>
+  {/* Twinkling stars overlay (2 layers, different speeds) */}
+  <div class="absolute inset-0 stars-bg" style="transform: scale(1.5); animation-duration: 3s;" aria-hidden="true"></div>
+  <div class="absolute inset-0 stars-bg" style="opacity: 0.5; transform: scale(1) rotate(45deg); animation-duration: 5s; animation-delay: 2s;" aria-hidden="true"></div>
+
+  <main class="w-full max-w-[1280px] mx-auto px-4 md:px-10 flex flex-col gap-8 flex-grow relative z-10">
+    {/* Upper section: space animation area */}
+    <section class="w-full h-[60vh] md:h-[70vh] relative flex items-center justify-center">
+      <div class="relative z-10 flex items-center justify-center w-full h-full">
+        {/* Orbit tracks (dashed circles, opposing rotation) */}
+        <div
+          class="absolute rounded-full border-2 border-dashed border-white/25 w-[280px] h-[280px] md:w-[480px] md:h-[480px]"
+          style="animation: spin 120s steps(60) infinite;"
+        ></div>
+        <div
+          class="absolute rounded-full border-2 border-dashed border-white/15 w-[380px] h-[380px] md:w-[640px] md:h-[640px]"
+          style="animation: spin 180s steps(60) infinite reverse;"
+        ></div>
+
+        {/* Earth — 10-frame rotation sprite sheet (nano-banana).
+            10 frames horizontally in 2928x352 PNG. Each frame ~293px wide.
+            Mobile: container 176x176 (44/4*16) → bg width = 1760, frame slot 176.
+            Desktop: container 288x288 (72/4*16) → bg width = 2880, frame slot 288. */}
+        <div
+          class="earth-rotating relative drop-shadow-[0_0_50px_rgba(100,150,255,0.4)] w-44 h-44 md:w-72 md:h-72"
+          aria-hidden="true"
+        ></div>
+
+        {/* Orbital plane — sits at Earth center, animation moves it along orbit radius.
+            Explicit width/height + max-width:none to defeat Tailwind preflight constraint. */}
+        <div
+          class="absolute top-1/2 left-1/2"
+          style="width: 0; height: 0; z-index: 20;"
+        >
+          <img
+            id="orbit-plane"
+            src="/sprites/stitch/airplane.png"
+            alt=""
+            class="pixelated drop-shadow-lg absolute block"
+            style="max-width: none !important; width: 56px; height: 56px; image-rendering: pixelated; top: -28px; left: -28px; animation: orbit-plane-loop 18s linear infinite;"
+            aria-hidden="true"
+          />
+        </div>
+
+        {/* Orbital satellite — outer track, reverse direction */}
+        <div
+          class="absolute top-1/2 left-1/2"
+          style="width: 0; height: 0; z-index: 20;"
+        >
+          <img
+            id="orbit-satellite"
+            src="/sprites/stitch/satellite.png"
+            alt=""
+            class="pixelated drop-shadow-lg absolute block"
+            style="max-width: none !important; width: 48px; height: 48px; image-rendering: pixelated; top: -24px; left: -24px; animation: orbit-satellite-loop 28s linear infinite reverse;"
+            aria-hidden="true"
+          />
+        </div>
+      </div>
+    </section>
+
+    {/* Lower section: dialog box */}
+    <section class="w-full max-w-4xl mx-auto flex flex-col items-center z-20 mt-auto">
+      <div class="w-full relative">
+        <div
+          class="pixel-border pixel-inset p-6 md:p-10 flex flex-col gap-6 relative"
+          style="background: var(--color-surface-container);"
+        >
+          {/* TRAVELER name tag — sticks up out of top of panel */}
+          <div
+            class="absolute -top-5 left-6 px-4 py-1 font-[JetBrains_Mono] font-bold uppercase tracking-wider text-[14px]"
+            style="background: var(--color-primary-container); color: var(--color-on-background); border: 4px solid var(--color-on-background); box-shadow: 4px 4px 0 var(--color-on-background);"
+          >
+            Traveler
+          </div>
+
+          {/* Dialog text — typed letter-by-letter on scroll-into-view */}
+          <div class="min-h-[120px] md:min-h-[160px] flex items-start mt-2">
+            <p
+              id="act2-dialog"
+              class="text-[18px] md:text-[20px] leading-relaxed typing-cursor"
+              style="font-family: var(--font-body); color: var(--color-on-background);"
+              data-full-text={`On July 15th I'm taking off — world trip. Been planning this for ages. ✈️\n\nBut before I go, one thing still needs sorting. You're ${groupIndex} of ${groupSize} who still owe me something. ${amountFmt} €. No drama. But would be cool before July 15.`}
+            ></p>
+          </div>
+
+          {/* CTA — fades in after typewriter completes */}
+          <div
+            id="act2-action-container"
+            class="mt-6 flex justify-end opacity-0 transition-opacity duration-300"
+          >
+            <button
+              type="button"
+              id="act2-cta"
+              class="px-6 py-4 pixel-button font-[JetBrains_Mono] font-bold text-[14px] uppercase tracking-wide flex items-center gap-2"
+              style="background: var(--color-primary-container); color: var(--color-on-background);"
+            >
+              How do I pay this?
+              <span aria-hidden="true">↓</span>
+            </button>
+          </div>
+
+          {/* Bouncing triangle indicator */}
+          <div id="act2-next-indicator" class="absolute bottom-6 right-8 hidden">
+            <div class="next-triangle"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</section>
+
+<script>
+  // Typewriter reveal for Act 2 dialog (triggers on scroll-into-view).
+  const dialogEl = document.getElementById('act2-dialog') as HTMLParagraphElement | null;
+  const actionContainer = document.getElementById('act2-action-container');
+  const nextIndicator = document.getElementById('act2-next-indicator');
+  const act2Cta = document.getElementById('act2-cta');
+
+  if (dialogEl) {
+    const fullText = (dialogEl.dataset.fullText ?? '').replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+    dialogEl.innerHTML = '';
+
+    let i = 0;
+    let isTag = false;
+    let htmlTag = '';
+    let started = false;
+
+    function typeWriter() {
+      if (i < fullText.length) {
+        const char = fullText.charAt(i);
+        if (char === '<') isTag = true;
+        if (isTag) {
+          htmlTag += char;
+          if (char === '>') {
+            isTag = false;
+            dialogEl!.innerHTML += htmlTag;
+            htmlTag = '';
+          }
+        } else {
+          dialogEl!.innerHTML += char;
+        }
+        i++;
+        let delay = isTag ? 0 : 30;
+        if (!isTag && /[.,?!]/.test(char)) delay += 150;
+        setTimeout(typeWriter, delay);
+      } else {
+        setTimeout(() => {
+          actionContainer?.classList.remove('opacity-0');
+          dialogEl!.classList.remove('typing-cursor');
+          nextIndicator?.classList.remove('hidden');
+        }, 500);
+      }
+    }
+
+    // Trigger when Act 2 enters viewport (50% visible).
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !started) {
+            started = true;
+            setTimeout(typeWriter, 600);
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    const act2 = document.getElementById('act-2-reveal');
+    if (act2) observer.observe(act2);
+  }
+
+  act2Cta?.addEventListener('click', () => {
+    document.getElementById('act-3-payment')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>

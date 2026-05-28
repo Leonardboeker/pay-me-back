@@ -1,0 +1,143 @@
+---
+// src/components/ConfirmModal.astro
+// Phase 3 D-09: Native <dialog> two-step confirm.
+// Phase 3.1: Restyled to Barcelona Pixel Dawn — chunky 4px ink border, surface-container
+// fill, Syne headline, pixel-buttons (Ja = sunset-orange, Nein = sand). All JS behavior
+// preserved verbatim — window.__openConfirmModal global, click-outside-to-close,
+// payleo:confirmed CustomEvent, double-click disable.
+// Microcopy LOCKED per CONTEXT §specifics:
+//   Title:       "Are you sure?"
+//   Description: "You're letting Leo know you chose [modality-word]."
+//   Confirm:     "Yes, go"
+//   Cancel:      "No"
+---
+
+<dialog
+  id="confirm-modal"
+  aria-labelledby="confirm-modal-title"
+  aria-describedby="confirm-modal-desc"
+  class="confirm-modal-pixel p-0 m-auto"
+>
+  <div
+    class="bg-surface-container pixel-border-thick p-7 md:p-9"
+    style="border-color: var(--color-on-background);"
+  >
+    {/* Header strip — game-dialog "▶ CONFIRM" label */}
+    <div class="flex items-center gap-2 mb-5 pb-3 border-b-4 border-on-background">
+      <span class="font-[Press_Start_2P] text-[14px] text-primary">▶</span>
+      <span class="font-[JetBrains_Mono] text-[11px] uppercase tracking-widest text-on-surface-variant font-bold">
+        CONFIRM
+      </span>
+    </div>
+
+    <h2
+      id="confirm-modal-title"
+      class="font-[Syne] text-[30px] md:text-[34px] font-bold text-on-background leading-tight mb-5"
+    >
+      Are you sure?
+    </h2>
+
+    <p
+      id="confirm-modal-desc"
+      class="font-[Space_Mono] text-[17px] md:text-[18px] text-on-surface-variant leading-relaxed mb-8"
+    >
+      You're telling Leo
+      <span id="confirm-modality-label" class="font-bold text-on-background"></span>.
+      Tap <strong>Yes, go</strong> only after you've actually sent it.
+    </p>
+
+    <div class="flex gap-4 flex-col sm:flex-row-reverse">
+      <button
+        id="confirm-yes"
+        type="button"
+        class="pixel-button flex-1 min-h-[52px] px-6 py-4 bg-primary-container text-on-background
+               font-[JetBrains_Mono] text-[15px] uppercase tracking-wider font-bold
+               disabled:opacity-40 disabled:cursor-not-allowed
+               focus-visible:outline-2 focus-visible:outline-on-background focus-visible:outline-offset-2"
+      >
+        Yes, go
+      </button>
+      <button
+        id="confirm-no"
+        type="button"
+        class="pixel-button flex-1 min-h-[52px] px-6 py-4 bg-surface-container-highest text-on-background
+               font-[JetBrains_Mono] text-[15px] uppercase tracking-wider font-bold
+               focus-visible:outline-2 focus-visible:outline-on-background focus-visible:outline-offset-2"
+      >
+        No
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<style>
+  /* Native <dialog> backdrop — ink overlay, no blur (keeps pixel aesthetic crunchy) */
+  .confirm-modal-pixel::backdrop {
+    background: rgba(33, 27, 7, 0.6);
+  }
+  /* Override <dialog>'s default width:auto+shrink-to-fit (which collapsed on some viewports
+     producing a 5mm-wide vertical strip). Use fluid viewport-based sizing with hard min/max
+     so the modal is always at least readable on phones and never wider than ~450px on desktop. */
+  .confirm-modal-pixel {
+    border: none;
+    background: transparent;
+    width: min(450px, calc(100vw - 32px));
+    min-width: 300px;
+    box-sizing: border-box;
+  }
+  /* On extremely narrow viewports (<320px), allow the modal to shrink to viewport-12px */
+  @media (max-width: 332px) {
+    .confirm-modal-pixel {
+      width: calc(100vw - 12px);
+      min-width: 0;
+    }
+  }
+</style>
+
+<script>
+  // ConfirmModal behavior — exposed globally so ModalitySelector can open it.
+  // Behavior IDENTICAL to pre-Phase-3.1 version (only visuals changed).
+  const modal = document.getElementById('confirm-modal');
+  const yesBtn = document.getElementById('confirm-yes');
+  const noBtn = document.getElementById('confirm-no');
+  const modalityLabelEl = document.getElementById('confirm-modality-label');
+
+  // Open modal — called from ModalitySelector script with the modality label.
+  window.__openConfirmModal = (label) => {
+    if (modalityLabelEl) modalityLabelEl.textContent = label;
+    // Re-enable confirm button each time modal opens (in case prev open was disabled)
+    yesBtn?.removeAttribute('disabled');
+    if (modal && typeof modal.showModal === 'function') {
+      modal.showModal();
+      // Focus the cancel button by default — safer choice for accidental Enter
+      noBtn?.focus();
+    }
+  };
+
+  // Close on "No"
+  noBtn?.addEventListener('click', () => {
+    if (modal && typeof modal.close === 'function') modal.close();
+  });
+
+  // Close on backdrop click (native <dialog> doesn't do this by default)
+  modal?.addEventListener('click', (e) => {
+    if (!modal.getBoundingClientRect) return;
+    const rect = modal.getBoundingClientRect();
+    const clickedOutside =
+      e.clientX < rect.left ||
+      e.clientX > rect.right ||
+      e.clientY < rect.top ||
+      e.clientY > rect.bottom;
+    if (clickedOutside && typeof modal.close === 'function') modal.close();
+  });
+
+  // ESC is handled natively by <dialog> — no JS needed.
+
+  // "Yes, go" — disable button (Pitfall 4: prevent double-click double-notification),
+  // close modal, then dispatch event so ModalitySelector handles the POST.
+  yesBtn?.addEventListener('click', () => {
+    yesBtn.setAttribute('disabled', 'true');
+    if (modal && typeof modal.close === 'function') modal.close();
+    window.dispatchEvent(new CustomEvent('payleo:confirmed'));
+  });
+</script>

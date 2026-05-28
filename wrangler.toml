@@ -1,0 +1,47 @@
+# wrangler.toml — Cloudflare Worker config for the pay-me-back API.
+# Rename + replace the placeholders below to match your domain.
+name = "pay-me-back-api"
+main = "worker/index.ts"
+compatibility_date = "2024-09-23"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Custom domain route (optional but recommended).
+# Comment this block out if you only want the worker on its *.workers.dev URL.
+# zone_name MUST be a domain you own and that's configured in Cloudflare DNS.
+# ────────────────────────────────────────────────────────────────────────────
+[[routes]]
+pattern = "pay.YOUR_DOMAIN.com/api/*"
+zone_name = "YOUR_DOMAIN.com"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Durable Object binding — holds slider state + confirmation log.
+# SQLite-backed (free tier as of 2026-01).
+# ────────────────────────────────────────────────────────────────────────────
+[[durable_objects.bindings]]
+name = "PAYLEO_DO"
+class_name = "PayLeoDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PayLeoDurableObject"]
+
+[vars]
+# Hard deadline for the campaign (ISO-8601 with timezone offset).
+# After this date the per-token pages flip to the "post-deadline" view.
+PAYLEO_DEADLINE = "2099-12-31T23:59:59+00:00"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Secrets — set via: npx wrangler secret put <NAME>
+# (Do NOT put real values here — this file is committed.)
+#
+#   PAYLEO_DEBTORS_JSON          JSON-stringified array of debtor objects
+#   PAYLEO_ADMIN_TOKEN           URL-safe token guarding /admin/<token>/
+#   PAYLEO_PAYPAL_HANDLE         Your paypal.me handle (no @, no URL)
+#   PAYLEO_BANK_HOLDER           SEPA account holder name
+#   PAYLEO_BANK_IBAN             SEPA IBAN (no spaces)
+#   PAYLEO_BANK_BIC              SEPA BIC
+#   PAYLEO_TELEGRAM_BOT_TOKEN    Optional — bot token from @BotFather
+#   PAYLEO_TELEGRAM_CHAT_ID      Optional — chat id that receives notifications
+#   PAYLEO_RESEND_API_KEY        Optional — Resend API key (email fallback)
+#   PAYLEO_NOTIFY_EMAIL          Optional — destination address for Resend
+# ────────────────────────────────────────────────────────────────────────────

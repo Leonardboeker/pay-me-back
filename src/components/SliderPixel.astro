@@ -1,0 +1,46 @@
+---
+// src/components/SliderPixel.astro
+// Phase 3 D-13..D-16: pixel-art-style total-debt slider.
+// Phase 3.1: Restyled to Barcelona Pixel Dawn — pixel-bordered HP-bar with
+// diagonal-stripe fill matching Act3Payment. Now currently unused (Act3Payment
+// owns the live slider in the 3-act layout) — kept on new tokens for reuse.
+// IDs (#slider-fill, #slider-amount, #slider-zero) preserved for IIFE compatibility.
+interface Props {
+  initialTotalCents?: number;
+}
+const { initialTotalCents } = Astro.props;
+const initialDisplay =
+  initialTotalCents != null ? `${Math.round(initialTotalCents / 100)} €` : '… €';
+---
+
+<div class="my-6 p-4 bg-surface-container-low pixel-border-shadow" style="box-shadow: 4px 4px 0 var(--color-on-background);">
+  <p class="font-[JetBrains_Mono] text-[12px] text-on-surface-variant uppercase tracking-widest font-bold mb-2">
+    Still open (everyone combined, anonymous):
+  </p>
+  <div class="flex items-center gap-3">
+    {/* Pixel HP-bar track — uses shared .xp-bar-container util */}
+    <div
+      class="xp-bar-container h-6 flex-1"
+      aria-hidden="true"
+    >
+      {/* Fill — width set by JS via --slider-percent CSS var (proportional shrink) */}
+      <div
+        id="slider-fill"
+        class="xp-bar-fill"
+        style="width: var(--slider-percent, 100%);"
+      >
+      </div>
+    </div>
+    {/* Amount label */}
+    <span
+      id="slider-amount"
+      class="font-[Space_Mono] text-[14px] font-bold text-on-background min-w-16 text-right"
+    >
+      {initialDisplay}
+    </span>
+  </div>
+  {/* Zero-state text (D-16) — shown when total reaches 0 */}
+  <p id="slider-zero" class="hidden font-[JetBrains_Mono] text-[12px] text-primary uppercase tracking-wider font-bold mt-2 text-center">
+    0 € — alle haben bezahlt 🎉
+  </p>
+</div>

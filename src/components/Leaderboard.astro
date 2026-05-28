@@ -1,0 +1,207 @@
+---
+// src/components/Leaderboard.astro
+// Phase 7 — anonymous leaderboard shown after successful payment.
+// Hidden by default; revealed via JS after fetching /api/leaderboard?token=<x>.
+// CSS-fallback for missing avatar PNGs (initial letter on solid color).
+interface Props {
+  token: string;
+}
+const { token } = Astro.props;
+---
+
+<section
+  id="leaderboard-section"
+  class="hidden mt-8 p-6 pixel-border-thick"
+  style="background: var(--color-surface-container); border-color: var(--color-on-background);"
+  data-leaderboard-token={token}
+  aria-labelledby="leaderboard-title"
+>
+  <h2
+    id="leaderboard-title"
+    class="text-[22px] md:text-[28px] uppercase mb-2"
+    style="font-family: var(--font-headline); font-weight: 800; letter-spacing: -1px; color: var(--color-on-background);"
+  >
+    ★ Leaderboard
+  </h2>
+  <p
+    id="leaderboard-stats"
+    class="text-[13px] uppercase tracking-wider mb-5"
+    style="font-family: var(--font-label); color: var(--color-on-surface-variant);"
+  >
+    <!-- "Du bist Platz X von Y" injected via JS -->
+  </p>
+
+  <div
+    id="leaderboard-grid"
+    class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3"
+    role="list"
+  >
+    <!-- Avatar tiles injected via JS -->
+  </div>
+</section>
+
+<style>
+  .lb-tile {
+    position: relative;
+    aspect-ratio: 1 / 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 4px 6px;
+    background: var(--color-surface-container-lowest);
+    border: 3px solid var(--color-on-background);
+    box-shadow: 3px 3px 0 var(--color-on-background);
+    overflow: hidden;
+  }
+  .lb-tile--self {
+    border-color: var(--color-primary);
+    box-shadow: 3px 3px 0 var(--color-primary);
+    background: var(--color-primary-fixed);
+  }
+  .lb-tile--pending {
+    opacity: 0.4;
+    filter: grayscale(1);
+  }
+  .lb-avatar {
+    width: 100%;
+    aspect-ratio: 1;
+    image-rendering: pixelated;
+    object-fit: cover;
+    margin-bottom: 6px;
+  }
+  .lb-avatar-fallback {
+    width: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-container-highest);
+    font-family: var(--font-pixel);
+    font-size: 22px;
+    color: var(--color-on-background);
+    margin-bottom: 6px;
+  }
+  .lb-rank {
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    color: var(--color-on-background);
+    line-height: 1;
+  }
+  .lb-rank--pending {
+    font-family: var(--font-label);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-on-surface-variant);
+  }
+  .lb-self-label {
+    margin-top: 4px;
+    padding: 2px 6px;
+    background: var(--color-primary-container);
+    color: var(--color-on-background);
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: 2px solid var(--color-on-background);
+  }
+</style>
+
+<script define:vars={{ token }}>
+  // Fetch + render leaderboard. Called after success-state shows.
+  async function renderLeaderboard() {
+    const section = document.getElementById('leaderboard-section');
+    if (!section) return;
+
+    try {
+      const apiBase = window.__API_BASE || '';
+      const res = await fetch(`${apiBase}/api/leaderboard?token=${encodeURIComponent(token)}`, {
+        headers: { 'Cache-Control': 'no-store' },
+      });
+      if (!res.ok) {
+        // 403 = privacy gate (caller hasn't confirmed) — silently skip
+        console.warn('[leaderboard] fetch status', res.status);
+        return;
+      }
+      const data = await res.json();
+
+      // Update stats line
+      const stats = document.getElementById('leaderboard-stats');
+      const selfEntry = data.entries.find((e) => e.isSelf);
+      const selfRank = selfEntry?.rank;
+      if (stats) {
+        stats.textContent = selfRank
+          ? `You're rank ${selfRank} of ${data.totalDebtors} · ${data.paidCount} paid`
+          : `${data.paidCount} of ${data.totalDebtors} paid`;
+      }
+
+      // Render grid
+      const grid = document.getElementById('leaderboard-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      data.entries.forEach((e) => {
+        const tile = document.createElement('div');
+        tile.className = 'lb-tile' + (e.isSelf ? ' lb-tile--self' : '') + (e.rank == null ? ' lb-tile--pending' : '');
+        tile.setAttribute('role', 'listitem');
+
+        // Avatar: try PNG, fallback to initial
+        const img = document.createElement('img');
+        img.className = 'lb-avatar';
+        img.src = `/sprites/avatars/${e.characterSlug}.png`;
+        img.alt = '';
+        img.loading = 'lazy';
+        img.onerror = () => {
+          img.remove();
+          const fb = document.createElement('div');
+          fb.className = 'lb-avatar-fallback';
+          fb.textContent = (e.characterSlug?.[0] ?? '?').toUpperCase();
+          tile.insertBefore(fb, tile.firstChild);
+        };
+        tile.appendChild(img);
+
+        // Rank
+        const rank = document.createElement('div');
+        if (e.rank != null) {
+          rank.className = 'lb-rank';
+          rank.textContent = `#${e.rank}`;
+        } else {
+          rank.className = 'lb-rank lb-rank--pending';
+          rank.textContent = 'open';
+        }
+        tile.appendChild(rank);
+
+        // "Das bist du" badge for self
+        if (e.isSelf) {
+          const label = document.createElement('div');
+          label.className = 'lb-self-label';
+          label.textContent = "That's you";
+          tile.appendChild(label);
+        }
+
+        grid.appendChild(tile);
+      });
+
+      section.classList.remove('hidden');
+    } catch (err) {
+      console.error('[leaderboard] error', err);
+    }
+  }
+
+  // Hook into existing payleo:confirmed event AND on page-load (always-attempt).
+  // ModalitySelector dispatches payleo:success-shown via window after a successful POST.
+  window.addEventListener('payleo:success-shown', () => {
+    // Small delay so SuccessState animation lands first
+    setTimeout(renderLeaderboard, 600);
+  });
+
+  // Page-load: always attempt — worker's 403 gate (only returns leaderboard if
+  // requester has themselves confirmed) handles privacy. If 403, fetch silently
+  // returns and section stays hidden. If 200, leaderboard renders.
+  // Small delay so state-restoration IIFE in [token].astro has time to settle
+  // (it reads /api/state and reveals #success-state if confirmed).
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(renderLeaderboard, 400);
+  });
+</script>

@@ -1,0 +1,119 @@
+---
+// src/components/Act1Intro.astro
+// Phase-3.1 Stitch-derived intro screen.
+// Hero: full-viewport studio scene (leo-studio.png) with Leo sprite (pose 1) composited.
+// Game HUD: "STATUS: ONLINE" badge top-right + "LEVEL 1" badge above sprite.
+// Speech bubble: "Hey! 👋"
+// Below scene: "DU KENNST MICH." headline + subtext + "LOS GEHT'S ↓" CTA.
+// Clicking CTA switches sprite to pose 4 (thumbs-up), bounces, scrolls to Act 2.
+
+interface Props {
+  name: string;
+}
+const { name } = Astro.props;
+---
+
+<section
+  id="act-1-intro"
+  class="relative w-full flex flex-col overflow-hidden"
+  aria-label={`Hey ${name} — quick thing`}
+>
+  {/* Hero scene — full studio composite with Leo INTEGRATED (idle by default,
+      celebrating after CTA click). Two stacked bg layers, fade-swap via class. */}
+  <div
+    id="hero-scene"
+    class="relative w-full h-[55vh] md:h-[65vh] border-b-4 border-on-background bg-surface-container flex-shrink-0 overflow-hidden"
+  >
+    {/* Idle scene — Leo at laptop, default state */}
+    <div
+      id="leo-scene-idle"
+      class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat pixelated transition-opacity duration-300"
+      style="background-image: url('/sprites/leo-studio-idle.png'); background-position: center center; opacity: 1;"
+      aria-label={`Leo at his Barcelona studio, sitting at workbench. Hi ${name}.`}
+    ></div>
+
+    {/* Celebrating scene — Leo jumps with arms up, revealed after CTA click */}
+    <div
+      id="leo-scene-celebrating"
+      class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat pixelated transition-opacity duration-300"
+      style="background-image: url('/sprites/leo-studio-celebrating.png'); background-position: center center; opacity: 0;"
+      aria-hidden="true"
+    ></div>
+
+    {/* HUD: status badge top-right */}
+    <div
+      class="absolute top-4 right-4 z-20 flex items-center gap-2 bg-white/80 px-3 py-1.5 pixel-border-shadow"
+      style="box-shadow: 2px 2px 0 var(--color-on-background);"
+    >
+      <div class="w-2 h-2 rounded-full" style="background: var(--color-status-online); animation: blink 1s steps(2) infinite;"></div>
+      <span class="font-[Press_Start_2P] text-[10px] uppercase" style="color: var(--color-on-background);">Status: Online</span>
+    </div>
+
+    {/* Speech bubble + LEVEL 1 badge — above where Leo's head is in the scene */}
+    <div class="absolute left-1/2 -translate-x-1/2 z-10 flex flex-col items-center" style="top: 8%;">
+      <div
+        class="mb-2 px-2 py-0.5 font-[Press_Start_2P] text-[8px] uppercase tracking-widest pixel-border-shadow"
+        style="background: var(--color-secondary); color: var(--color-on-secondary); box-shadow: 2px 2px 0 var(--color-on-background);"
+      >
+        Level 1
+      </div>
+      <div
+        class="speech-bubble animate-bounce font-[Press_Start_2P] text-sm"
+        style="color: var(--color-on-background);"
+      >
+        Hey! 👋
+      </div>
+    </div>
+  </div>
+
+  {/* Content area — compact: headline + subtext (1 line) + CTA, minimal vertical space */}
+  <div class="flex flex-col items-center justify-start pt-5 pb-6 px-4 relative z-20 text-center w-full" style="background: #F5E8C7;">
+    <div class="w-full max-w-[640px] flex flex-col items-center gap-3">
+      <h1
+        class="font-[Press_Start_2P] text-base sm:text-xl md:text-2xl lg:text-3xl leading-tight uppercase whitespace-nowrap"
+        style="color: var(--color-on-background);"
+      >
+        You know me.
+      </h1>
+
+      <p
+        class="text-[16px] md:text-[18px] leading-snug w-full text-center"
+        style="font-family: var(--font-body); color: var(--color-on-surface-variant);"
+      >
+        But we need to talk for a sec. Won't take 60 seconds.
+      </p>
+
+      <button
+        type="button"
+        id="act1-cta"
+        class="mt-2 px-8 py-4 pixel-button font-[Press_Start_2P] text-sm uppercase flex items-center gap-2"
+        style="background: var(--color-primary-container); color: var(--color-on-primary-container);"
+      >
+        <span>Let's go</span>
+        <span aria-hidden="true">↓</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Act 1 → Act 2 transition: fade idle scene out + celebrating scene in, then scroll.
+  const cta = document.getElementById('act1-cta');
+  const idleScene = document.getElementById('leo-scene-idle');
+  const celebrateScene = document.getElementById('leo-scene-celebrating');
+
+  cta?.addEventListener('click', () => {
+    // Cross-fade: idle out, celebrating in (transition-opacity 300ms already set in markup)
+    if (idleScene) idleScene.style.opacity = '0';
+    if (celebrateScene) {
+      celebrateScene.style.opacity = '1';
+      celebrateScene.setAttribute('aria-hidden', 'false');
+    }
+    if (idleScene) idleScene.setAttribute('aria-hidden', 'true');
+
+    // Scroll to Act 2 after the celebrate frame has had ~0.5s to register.
+    setTimeout(() => {
+      document.getElementById('act-2-reveal')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 600);
+  });
+</script>

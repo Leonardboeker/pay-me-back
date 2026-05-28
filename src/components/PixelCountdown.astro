@@ -1,0 +1,31 @@
+---
+// src/components/PixelCountdown.astro
+// Inline pixel-font countdown. Displayed inside Hero scene 3 overlay.
+// Phase 3.1: Restyled to use on-background ink token + primary-container highlight.
+// Currently unused in active route (Act3Payment header has its own NOCH XX TAGE
+// chip) — kept on new tokens for reuse from HeroAnimation.
+// Per UI-SPEC §6, D-11 (days-only), D-13 (Tag-0 variant).
+interface Props {
+  daysRemaining: number;
+}
+const { daysRemaining } = Astro.props;
+const countdownText = daysRemaining === 0 ? "HEUTE GEHT'S LOS!" : `NOCH ${daysRemaining} TAGE`;
+---
+
+<span
+  class="pixel-countdown font-[Press_Start_2P] text-[14px] md:text-[18px] text-on-background bg-primary-container px-3 py-1 inline-block"
+  style="text-shadow: 1px 1px 0 var(--color-surface); border: 3px solid var(--color-on-background); box-shadow: 3px 3px 0 var(--color-on-background);"
+  data-deadline-ms={String(new Date('2026-07-15T23:59:59+02:00').getTime())}
+>
+  {countdownText}
+</span>
+
+<script>
+  // Re-compute on page-load to handle stale CDN HTML (≤300 bytes).
+  // Only days granularity (D-11). Clamp ≥ 0.
+  document.querySelectorAll<HTMLElement>('.pixel-countdown').forEach((el) => {
+    const deadlineMs = Number(el.dataset.deadlineMs ?? 0);
+    const days = Math.max(0, Math.ceil((deadlineMs - Date.now()) / 86400000));
+    el.textContent = days === 0 ? "HEUTE GEHT'S LOS!" : `NOCH ${days} TAGE`;
+  });
+</script>

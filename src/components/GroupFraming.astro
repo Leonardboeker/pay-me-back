@@ -1,0 +1,16 @@
+---
+// src/components/GroupFraming.astro
+// "Du bist 1 von N" group-framing line — verbatim per UI-SPEC §12.
+// Phase 3.1: Restyled to Space Mono italic on on-surface-variant. Currently
+// unused (Act3Payment owns the live framing line) — kept on new tokens for reuse.
+// N = debtors.length, passed from [token].astro. DEBT-03.
+// Selbstironie marker "ich weiß, ich weiß" is MANDATORY (Checker F-03).
+interface Props {
+  n: number;
+}
+const { n } = Astro.props;
+---
+
+<p class="font-[Space_Mono] text-[14px] text-on-surface-variant italic mt-4 px-1">
+  You're 1 of {n} who still owe me something — I know, I know.
+</p>

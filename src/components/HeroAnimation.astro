@@ -1,0 +1,277 @@
+---
+// src/components/HeroAnimation.astro
+// 4-scene pixel storyboard: Leo in BCN → Takeoff → World-Map (with Countdown) → Schulden-Reveal
+// CSS-only, 5 loops then freeze on Scene 4. Per UI-SPEC §5 + RESEARCH §Q1/§Q2.
+// Phase 3.1: Legacy hero. Currently unused (Act1Intro replaces it in [token].astro).
+// Legacy CSS-var references (--color-ink-900 / --color-sea-400 / etc) mapped to
+// current Barcelona Pixel Dawn tokens so the component still renders if reused.
+import PixelCountdown from './PixelCountdown.astro';
+
+interface Props {
+  name: string;
+  amount: number;
+  daysRemaining: number;
+}
+const { name, amount, daysRemaining } = Astro.props;
+
+// German formatted amount for Scene 4 subtitle
+const amountFmt = amount.toLocaleString('de-DE', {
+  minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+  maximumFractionDigits: 2,
+});
+
+// Scene 3 subtitle: days or Tag-0 variant
+const scene3Subtitle = daysRemaining === 0
+  ? "Heute geht's los — ich heb gleich ab."
+  : `In ${daysRemaining} Tagen geht's los.`;
+---
+
+<!-- Animated stage — aria-hidden, semantic content in hero-static below -->
+<div class="hero-stage" aria-hidden="true">
+
+  <!-- Scene layers (opacity keyframed) -->
+  <div class="scene scene-1"></div>
+  <div class="scene scene-2"></div>
+  <div class="scene scene-3"></div>
+  <div class="scene scene-4"></div>
+
+  <!-- Sims Sprechblasen (per UI-SPEC §5.4 + RESEARCH §Q1 clip-path tail) -->
+  <div class="bubble bubble-1">Bzaa vloop?</div>
+  <div class="bubble bubble-2" style="transform: rotate(-2deg);">Glooop bzaa!</div>
+  <div class="bubble bubble-3" style="right: 10%; left: auto;">Vrrrm woop.</div>
+  <div class="bubble bubble-4">Bzaa… vloop sniff.</div>
+
+  <!-- DE subtitles (italic, absolute positioned, per UI-SPEC §5.5) -->
+  <div class="subtitle subtitle-1">Hey {name} — ich plan was Großes…</div>
+  <div class="subtitle subtitle-2">…ich will im Sommer um die Welt!</div>
+  <div class="subtitle subtitle-3">{scene3Subtitle}</div>
+  <div class="subtitle subtitle-4">Aber {name}… du schuldest mir noch {amountFmt} €.</div>
+
+  <!-- Pixel-Countdown overlay — only visible during Scene 3 fade (CSS opacity) -->
+  <div class="countdown-overlay">
+    <PixelCountdown daysRemaining={daysRemaining} />
+  </div>
+
+</div>
+
+<!-- Reduced-motion fallback — visible ONLY when prefers-reduced-motion: reduce (CSS) -->
+<div
+  class="hero-static"
+  aria-label={`Storyboard: Leo plant eine Weltreise und ${name} schuldet ihm noch ${amountFmt} Euro.`}
+>
+  <img
+    src="/sprites/scene4-reveal.png"
+    width="320"
+    height="180"
+    alt=""
+    class="pixel w-full max-w-[640px] mx-auto block"
+    loading="eager"
+    style="object-fit: none; object-position: -1600px 0;"
+  />
+  <ol class="storyboard-text text-sm text-on-surface-variant font-[Space_Mono] mt-4 space-y-1 list-decimal list-inside">
+    <li><strong>Bzaa vloop?</strong> — Hey {name}, ich plan was Großes…</li>
+    <li><strong>Glooop bzaa!</strong> — …ich will im Sommer um die Welt!</li>
+    <li><strong>Vrrrm woop.</strong> — {scene3Subtitle}</li>
+    <li><strong>Bzaa… vloop sniff.</strong> — Aber {name}, du schuldest mir noch {amountFmt} €.</li>
+  </ol>
+  <div class="mt-3">
+    <PixelCountdown daysRemaining={daysRemaining} />
+  </div>
+</div>
+
+<style>
+/* =========================================================
+   Hero Stage — 320×180 logical, 2× scaled on desktop
+   ink-900 on sea-400 contrast ≈ 6.2:1 (WCAG AA, F-04 resolved)
+   ========================================================= */
+.hero-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-width: 640px;
+  margin: 0 auto;
+  background: linear-gradient(to bottom, var(--color-tertiary-container), var(--color-surface-container));
+  border: 4px solid var(--color-on-background);
+  overflow: hidden;
+}
+
+/* Pixel-art quality on all scene layers */
+.scene {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  opacity: 0;
+}
+
+/* Per-scene sprite + frame count from UI-SPEC §5.2 */
+.scene-1 {
+  background-image: url('/sprites/scene1-leo-bcn.png');
+  background-size: 600% 100%;  /* 6 frames */
+  animation:
+    scene1-frames 1.5s steps(6) infinite,
+    scene1-fade 10.5s linear 5 forwards;
+}
+.scene-2 {
+  background-image: url('/sprites/scene2-takeoff.png');
+  background-size: 800% 100%;  /* 8 frames */
+  animation:
+    scene2-frames 1s steps(8) infinite,
+    scene2-fade 10.5s linear 5 forwards;
+}
+.scene-3 {
+  background-image: url('/sprites/scene3-route.png');
+  background-size: 1200% 100%;  /* 12 frames */
+  animation:
+    scene3-frames 2s steps(12) infinite,
+    scene3-fade 10.5s linear 5 forwards;
+}
+.scene-4 {
+  background-image: url('/sprites/scene4-reveal.png');
+  background-size: 1000% 100%;  /* 10 frames */
+  animation:
+    scene4-frames 2s steps(10) 5 forwards,  /* freeze on last frame after 5 loops */
+    scene4-fade 10.5s linear 5 forwards;
+}
+
+/* Frame cycling keyframes — steps() = hard-cut pixel motion */
+@keyframes scene1-frames { to { background-position: -600% 0; } }
+@keyframes scene2-frames { to { background-position: -800% 0; } }
+@keyframes scene3-frames { to { background-position: -1200% 0; } }
+@keyframes scene4-frames { to { background-position: -1000% 0; } }
+
+/* Fade orchestration — 10.5s master cycle × 5 iterations = 52.5s then freeze
+   Timing math from UI-SPEC §5.3 (percentages verified):
+   Scene 1: 0–2.5s (23.8%), fade 0.4s (27.6%)
+   Scene 2: 2.5–5.0s (47.6%), fade 0.4s (51.4%)
+   Scene 3: 5.0–7.5s (71.4%), fade 0.4s (75.2%)
+   Scene 4: 7.5–10.5s (100%), stays on */
+@keyframes scene1-fade {
+  0%, 23.8% { opacity: 1; }
+  27.6%, 100% { opacity: 0; }
+}
+@keyframes scene2-fade {
+  0%, 23.8% { opacity: 0; }
+  27.6%, 47.6% { opacity: 1; }
+  51.4%, 100% { opacity: 0; }
+}
+@keyframes scene3-fade {
+  0%, 47.6% { opacity: 0; }
+  51.4%, 71.4% { opacity: 1; }
+  75.2%, 100% { opacity: 0; }
+}
+@keyframes scene4-fade {
+  0%, 71.4% { opacity: 0; }
+  75.2%, 100% { opacity: 1; }
+}
+
+/* =========================================================
+   Sims Sprechblasen — CSS-only clip-path tail (RESEARCH §Q1)
+   No border on ::after — clip-path would clip it. Use
+   filter: drop-shadow on .bubble for chunky outline (RESEARCH Pitfall #2).
+   ========================================================= */
+.bubble {
+  position: absolute;
+  background: #ffffff;
+  color: var(--color-on-background);
+  border: 3px solid var(--color-on-background);
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+  max-width: 60%;
+  filter: drop-shadow(2px 2px 0 var(--color-on-background));
+  opacity: 0;
+}
+.bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 20px;
+  width: 14px;
+  height: 12px;
+  background: #ffffff;
+  /* polygon: speech-tail pointing down-left */
+  clip-path: polygon(0% 0%, 100% 0%, 30% 100%);
+  transform: rotate(-8deg);
+}
+
+/* Per-scene bubble positions (percent-based, survives responsive resize) */
+.bubble-1 { top: 10%; left: 18%; }
+.bubble-2 { top: 14%; left: 30%; }
+.bubble-3 { top: 16%; right: 10%; }
+.bubble-4 { top: 50%; left: 20%; filter: drop-shadow(4px 4px 0 var(--color-on-background)); }
+
+/* Bubble fade: opacity-keyed, locked to scene-window */
+.bubble-1 { animation: bubble1-fade 10.5s linear 5 forwards; }
+.bubble-2 { animation: bubble2-fade 10.5s linear 5 forwards; }
+.bubble-3 { animation: bubble3-fade 10.5s linear 5 forwards; }
+.bubble-4 { animation: bubble4-fade 10.5s linear 5 forwards; }
+
+@keyframes bubble1-fade {
+  0%, 2% { opacity: 0; }
+  4%, 21.9% { opacity: 1; }
+  25.7%, 100% { opacity: 0; }
+}
+@keyframes bubble2-fade {
+  0%, 25.7% { opacity: 0; }
+  27.6%, 45.7% { opacity: 1; }
+  49.5%, 100% { opacity: 0; }
+}
+@keyframes bubble3-fade {
+  0%, 49.5% { opacity: 0; }
+  51.4%, 69.5% { opacity: 1; }
+  73.3%, 100% { opacity: 0; }
+}
+@keyframes bubble4-fade {
+  0%, 73.3% { opacity: 0; }
+  75.2%, 100% { opacity: 1; }
+}
+
+/* DE Subtitles — italic, bottom-anchored over hero canvas */
+.subtitle {
+  position: absolute;
+  bottom: 6%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-style: italic;
+  color: var(--color-on-background);
+  font-size: 14px;
+  padding: 0 12px;
+  opacity: 0;
+  text-shadow: 0 1px 2px #ffffff;
+}
+.subtitle-1 { animation: bubble1-fade 10.5s linear 5 forwards; }
+.subtitle-2 { animation: bubble2-fade 10.5s linear 5 forwards; }
+.subtitle-3 { animation: bubble3-fade 10.5s linear 5 forwards; }
+.subtitle-4 { animation: bubble4-fade 10.5s linear 5 forwards; font-weight: 700; }
+
+/* Countdown overlay — visible during scene 3 window (same timing as bubble3-fade) */
+.countdown-overlay {
+  position: absolute;
+  top: 10%;
+  left: 5%;
+  opacity: 0;
+  animation: bubble3-fade 10.5s linear 5 forwards;
+}
+
+/* =========================================================
+   Reduced-motion: swap animated stage for static storyboard
+   (UI-SPEC §5.7 — global prefers-reduced-motion guard already
+   in global.css @layer base disables all animations)
+   ========================================================= */
+.hero-static {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-stage {
+    display: none;
+  }
+  .hero-static {
+    display: block;
+  }
+}
+</style>

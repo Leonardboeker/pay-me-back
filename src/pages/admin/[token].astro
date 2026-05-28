@@ -1,0 +1,311 @@
+---
+// src/pages/admin/[token].astro
+// Phase 4: Admin dashboard. Replaces the Phase 1 placeholder.
+// D-08 preserved: getStaticPaths returns ONE entry (the PAYLEO_ADMIN_TOKEN value).
+//   Any other /admin/<x> URL produces 404 because no static file exists for it.
+// D-09: PAYLEO_ADMIN_TOKEN baked into the IIFE via define:vars; sent as X-Admin-Token header.
+// D-01: Utilitarian styling — composed components use clean borders, system fonts, no pixel-RPG decorations.
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminHeader from '../../components/admin/AdminHeader.astro';
+import AdminStats from '../../components/admin/AdminStats.astro';
+import AdminTable from '../../components/admin/AdminTable.astro';
+import AdminActivityLog from '../../components/admin/AdminActivityLog.astro';
+
+export const prerender = true;
+
+export const getStaticPaths = (() => {
+  const adminToken = import.meta.env.PAYLEO_ADMIN_TOKEN;
+  if (!adminToken) {
+    throw new Error('PAYLEO_ADMIN_TOKEN env var missing - cannot build admin route');
+  }
+  return [{ params: { token: adminToken }, props: {} }];
+}) satisfies GetStaticPaths;
+
+const adminToken = import.meta.env.PAYLEO_ADMIN_TOKEN as string;
+const publicApiBase = (import.meta.env.PUBLIC_API_BASE as string | undefined) ?? '';
+---
+<BaseLayout title="PayLeo Admin">
+  <main class="max-w-6xl mx-auto px-4 py-6" style="font-family: var(--font-body);">
+    <AdminHeader />
+    <div id="admin-error" class="admin-error" hidden></div>
+    <AdminStats />
+    <AdminTable />
+    <AdminActivityLog />
+  </main>
+
+  <script define:vars={{ adminToken, publicApiBase }}>
+    // ───────────────────────────────────────────────────────────────
+    // Admin dashboard IIFE — single inline script.
+    // Mirrors [token].astro pattern: zero external JS bundle, one <script> per page.
+    // ───────────────────────────────────────────────────────────────
+    (function () {
+      const API_BASE = publicApiBase || (location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'http://localhost:8787'
+        : ''); // empty = same-origin (Worker route mounted on same host)
+      const HEADERS = { 'X-Admin-Token': adminToken, 'Content-Type': 'application/json' };
+
+      const $ = (sel) => document.querySelector(sel);
+      const errorBox = $('#admin-error');
+      const refreshBtn = $('#refresh-btn');
+      const lastRefreshed = $('#last-refreshed');
+      const debtorCount = $('#admin-debtor-count');
+      const sliderFill = $('#admin-slider-fill');
+      const sliderAmount = $('#admin-slider-amount');
+      const sliderInitial = $('#admin-slider-initial');
+      const modalityBreakdown = $('#modality-breakdown');
+      const tbody = $('#admin-tbody');
+      const activityList = $('#admin-activity');
+
+      // German number format reused from src/lib/format.ts logic
+      function formatAmount(amount) {
+        return amount.toLocaleString('de-DE', {
+          minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+          maximumFractionDigits: 2,
+        });
+      }
+
+      // Relative time (mirror of admin-format.ts to avoid bundling)
+      function formatRelativeTime(ts) {
+        if (ts == null) return '—';
+        const diffMs = Date.now() - ts;
+        const diffSec = Math.floor(diffMs / 1000);
+        if (diffSec < 60) return 'just now';
+        const diffMin = Math.floor(diffSec / 60);
+        const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+        if (diffMin < 60) return rtf.format(-diffMin, 'minute');
+        const diffHour = Math.floor(diffMin / 60);
+        if (diffHour < 24) return rtf.format(-diffHour, 'hour');
+        const d = new Date(ts);
+        const pad = (n) => String(n).padStart(2, '0');
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+          + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      }
+
+      function statusLabel(s) {
+        return s === 'open' ? 'Open' : s === 'paid' ? 'Paid' : s === 'delayed' ? 'Delayed' : s;
+      }
+
+      function modalityLabel(m) {
+        if (!m) return '—';
+        return m === 'einmalzahlung' ? 'Pay in full'
+          : m === 'raten' ? 'Installments'
+          : m === 'aufschub' ? 'Delay'
+          : m;
+      }
+
+      function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.hidden = false;
+      }
+      function clearError() {
+        errorBox.hidden = true;
+        errorBox.textContent = '';
+      }
+
+      function renderRow(row) {
+        const tr = document.createElement('tr');
+        tr.dataset.token = row.token;
+
+        const nameTd = document.createElement('td');
+        nameTd.textContent = row.name;
+        tr.appendChild(nameTd);
+
+        const amountTd = document.createElement('td');
+        amountTd.textContent = formatAmount(row.amount) + ' €';
+        tr.appendChild(amountTd);
+
+        const statusTd = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = 'status-badge status-' + row.status;
+        badge.textContent = statusLabel(row.status);
+        statusTd.appendChild(badge);
+        tr.appendChild(statusTd);
+
+        const modTd = document.createElement('td');
+        modTd.textContent = modalityLabel(row.modality);
+        tr.appendChild(modTd);
+
+        const actTd = document.createElement('td');
+        actTd.textContent = formatRelativeTime(row.confirmedAt);
+        tr.appendChild(actTd);
+
+        const actionsTd = document.createElement('td');
+        actionsTd.className = 'admin-actions';
+
+        const markBtn = document.createElement('button');
+        markBtn.type = 'button';
+        markBtn.className = 'admin-button admin-button-paid';
+        markBtn.dataset.action = 'mark-paid';
+        markBtn.dataset.token = row.token;
+        markBtn.dataset.name = row.name;
+        markBtn.textContent = 'Mark Paid';
+        if (row.status !== 'open') markBtn.disabled = true;
+        actionsTd.appendChild(markBtn);
+
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.className = 'admin-button admin-button-reset';
+        resetBtn.dataset.action = 'reset';
+        resetBtn.dataset.token = row.token;
+        resetBtn.dataset.name = row.name;
+        resetBtn.textContent = 'Reset';
+        if (row.status === 'open') resetBtn.disabled = true;
+        actionsTd.appendChild(resetBtn);
+
+        tr.appendChild(actionsTd);
+        return tr;
+      }
+
+      function renderTable(rows) {
+        while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+        if (rows.length === 0) {
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 6;
+          td.className = 'admin-loading';
+          td.textContent = 'No debtors configured. Check PAYLEO_DEBTORS_JSON in CF Pages dashboard.';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+        for (const row of rows) tbody.appendChild(renderRow(row));
+      }
+
+      function renderStats(slider, counts, totalDebtors) {
+        if (debtorCount) debtorCount.textContent = String(totalDebtors);
+        const initialEur = Math.round(slider.initialCents / 100);
+        const currentEur = Math.round(slider.currentCents / 100);
+        const pct = slider.initialCents > 0
+          ? Math.max(0, Math.min(100, (slider.currentCents / slider.initialCents) * 100))
+          : 0;
+        if (sliderFill) sliderFill.style.width = pct + '%';
+        if (sliderAmount) sliderAmount.textContent = formatAmount(currentEur) + ' €';
+        if (sliderInitial) sliderInitial.textContent = formatAmount(initialEur) + ' €';
+
+        if (modalityBreakdown) {
+          const spans = modalityBreakdown.querySelectorAll('span[data-modality]');
+          spans.forEach((sp) => {
+            const k = sp.getAttribute('data-modality');
+            sp.textContent = String(counts[k] ?? 0);
+          });
+        }
+      }
+
+      function renderActivity(activity) {
+        while (activityList.firstChild) activityList.removeChild(activityList.firstChild);
+        if (activity.length === 0) {
+          const li = document.createElement('li');
+          li.className = 'admin-loading';
+          li.textContent = 'No confirmations yet.';
+          activityList.appendChild(li);
+          return;
+        }
+        for (const a of activity) {
+          const li = document.createElement('li');
+          const nameEl = document.createElement('span');
+          nameEl.className = 'admin-activity-name';
+          nameEl.textContent = a.name;
+          const modEl = document.createElement('span');
+          modEl.className = 'admin-activity-modality';
+          modEl.textContent = '· ' + modalityLabel(a.modality);
+          const timeEl = document.createElement('span');
+          timeEl.className = 'admin-activity-time';
+          timeEl.textContent = formatRelativeTime(a.confirmedAt);
+          li.appendChild(nameEl);
+          li.appendChild(modEl);
+          li.appendChild(timeEl);
+          activityList.appendChild(li);
+        }
+      }
+
+      async function refresh() {
+        clearError();
+        try {
+          const res = await fetch(API_BASE + '/api/admin/list', { headers: HEADERS });
+          if (!res.ok) {
+            showError('Failed to load (HTTP ' + res.status + '). Check PAYLEO_ADMIN_TOKEN.');
+            return;
+          }
+          const data = await res.json();
+          renderTable(data.rows);
+          renderStats(data.slider, data.modalityCounts, data.rows.length);
+          renderActivity(data.activity);
+          lastRefreshed.textContent = new Date().toLocaleTimeString();
+        } catch (err) {
+          showError('Network error: ' + (err && err.message ? err.message : 'unknown'));
+        }
+      }
+
+      async function markPaid(token, btn) {
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = 'Marking…';
+        clearError();
+        try {
+          const res = await fetch(API_BASE + '/api/admin/mark-paid', {
+            method: 'POST',
+            headers: HEADERS,
+            body: JSON.stringify({ token: token }),
+          });
+          if (!res.ok) {
+            showError('Mark Paid failed (HTTP ' + res.status + ').');
+            btn.disabled = false;
+            btn.textContent = original;
+            return;
+          }
+          await refresh();
+        } catch (err) {
+          showError('Mark Paid network error.');
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      }
+
+      async function resetDebtor(token, name, btn) {
+        // D-06: browser-native confirm dialog before destructive action
+        if (!confirm('Reset ' + name + '? This restores their status to Open and adds the amount back to the open total.')) {
+          return;
+        }
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = 'Resetting…';
+        clearError();
+        try {
+          const res = await fetch(API_BASE + '/api/admin/reset', {
+            method: 'POST',
+            headers: HEADERS,
+            body: JSON.stringify({ token: token }),
+          });
+          if (!res.ok) {
+            showError('Reset failed (HTTP ' + res.status + ').');
+            btn.disabled = false;
+            btn.textContent = original;
+            return;
+          }
+          await refresh();
+        } catch (err) {
+          showError('Reset network error.');
+          btn.disabled = false;
+          btn.textContent = original;
+        }
+      }
+
+      // Event wiring
+      if (refreshBtn) refreshBtn.addEventListener('click', refresh);
+
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const token = btn.dataset.token;
+        const name = btn.dataset.name;
+        if (action === 'mark-paid') markPaid(token, btn);
+        if (action === 'reset') resetDebtor(token, name, btn);
+      });
+
+      // Initial load
+      refresh();
+    })();
+  </script>
+</BaseLayout>

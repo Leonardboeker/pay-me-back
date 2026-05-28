@@ -1,0 +1,50 @@
+---
+// src/components/SuccessState.astro
+// Phase 3 D-11: success-state card persisted server-side via /api/state on reload.
+// Phase 3.1: Restyled to Stitch Barcelona Pixel Dawn — pixel-bordered with
+// Leo sprite pose 4 (thumbs up) + retro confetti.
+interface Props {
+  name: string;
+}
+const { name } = Astro.props;
+const aufschubBody = `All good, ${name}. Leo knows. When something works out, feel free to write again.`;
+const paidBody = `You've done your part. Leo knows.`;
+---
+
+<div
+  id="success-state"
+  class="hidden mt-8 p-8 text-center pixel-border-thick relative overflow-hidden"
+  style="background: var(--color-surface-container); border-color: var(--color-on-background);"
+  data-aufschub-body={aufschubBody}
+>
+  {/* Confetti sparkles (decorative, pure CSS) */}
+  <div class="absolute top-2 left-2 text-2xl animate-bounce" aria-hidden="true">✦</div>
+  <div class="absolute top-4 right-4 text-2xl" style="animation: float 2s steps(4) infinite;" aria-hidden="true">★</div>
+  <div class="absolute bottom-4 left-6 text-xl" style="animation: float 3s steps(4) infinite reverse;" aria-hidden="true">✧</div>
+  <div class="absolute bottom-2 right-2 text-xl animate-bounce" aria-hidden="true">✦</div>
+
+  {/* Headline */}
+  <p
+    class="text-[24px] md:text-[32px] uppercase mb-2"
+    style="font-family: var(--font-headline); font-weight: 800; letter-spacing: -1px; color: var(--color-on-background);"
+  >
+    Thanks, {name}! ✨
+  </p>
+
+  {/* Body text (data-success-body is swapped by IIFE for aufschub variant) */}
+  <p
+    data-success-body
+    class="text-[16px] leading-relaxed mb-4"
+    style="font-family: var(--font-body); color: var(--color-on-background);"
+  >
+    {paidBody}
+  </p>
+
+  {/* Footer hint */}
+  <p
+    class="text-[12px] uppercase tracking-wide italic"
+    style="font-family: var(--font-label); color: var(--color-on-surface-variant);"
+  >
+    (Have a nice trip from Pixel-Leo)
+  </p>
+</div>
