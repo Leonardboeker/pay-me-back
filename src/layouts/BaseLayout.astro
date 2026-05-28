@@ -21,6 +21,14 @@ const ogImageAbsolute = ogImage
   : undefined;
 
 // ───────────────────────────────────────────────────────────────
+// Demo-mode banner
+// Set PAYLEO_DEMO_MODE=true at build time to render a loud striped warning
+// at the very top of every page: "DEMO PAGE — no real money etc."
+// Left off in production (env var unset) so real adopters get a clean header.
+// ───────────────────────────────────────────────────────────────
+const isDemoMode = (import.meta.env.PAYLEO_DEMO_MODE as string | undefined) === 'true';
+
+// ───────────────────────────────────────────────────────────────
 // Attribution footer
 // Shown at the very bottom of every page. Lets visitors see this is
 // open-source and find the template to build their own.
@@ -93,9 +101,92 @@ const REPO_URL = 'https://github.com/Leonardboeker/pay-me-back';
       .built-with-footer .built-with-coin {
         font-size: 12px;
       }
+
+      /* Demo-mode banner — see PAYLEO_DEMO_MODE in BaseLayout.astro */
+      .demo-banner {
+        position: relative;
+        width: 100%;
+        background: repeating-linear-gradient(
+          135deg,
+          #facc15 0 28px,
+          #fde047 28px 56px
+        );
+        border-bottom: 4px solid #2a1f1a;
+        padding: 14px 16px;
+        text-align: center;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        color: #2a1f1a;
+        z-index: 50;
+      }
+      .demo-banner-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px 14px;
+        max-width: 980px;
+        margin: 0 auto;
+      }
+      .demo-banner-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: #2a1f1a;
+        color: #fde047;
+        font-weight: 800;
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        border: 2px solid #2a1f1a;
+        box-shadow: 3px 3px 0 #2a1f1a;
+      }
+      .demo-banner-body {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 1.35;
+      }
+      .demo-banner-body strong {
+        background: #2a1f1a;
+        color: #fde047;
+        padding: 1px 5px;
+      }
+      .demo-banner-repo {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #2a1f1a;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+      }
+      .demo-banner-repo:hover,
+      .demo-banner-repo:focus-visible {
+        background: #2a1f1a;
+        color: #fde047;
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
+    {/* Demo banner — only rendered when PAYLEO_DEMO_MODE=true at build time. */}
+    {isDemoMode && (
+      <aside class="demo-banner" role="alert" aria-label="Demo page notice">
+        <div class="demo-banner-inner">
+          <span class="demo-banner-tag" aria-hidden="true">🚧 DEMO PAGE</span>
+          <span class="demo-banner-body">
+            Every name, amount, IBAN and payment link on this page is <strong>fake</strong>.
+            Nothing here collects real money or routes to a real account.
+          </span>
+          <a class="demo-banner-repo" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            View the source / fork this →
+          </a>
+        </div>
+      </aside>
+    )}
+
     <slot />
 
     {/* Open-source attribution. See comment in BaseLayout.astro frontmatter to remove. */}
