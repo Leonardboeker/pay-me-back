@@ -8,12 +8,16 @@
 
 Per-person URL · soft self-irony · a slider that visibly shrinks as people pay · three modalities (pay in full / installments / "I need more time") · anonymous leaderboard · admin dashboard · Telegram pings.
 
+[![Live demo](https://img.shields.io/badge/▶_Live_demo-pay--me--back--demo.pages.dev-22C55E?style=for-the-badge)](https://main.pay-me-back-demo.pages.dev/EXAMPLE_TOKEN_ALICE_REPLACE_ME/)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Astro 6](https://img.shields.io/badge/Astro-6.x-FF5D01?logo=astro&logoColor=white)](https://astro.build/)
 [![Tailwind v4](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages%20%2B%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Free tier](https://img.shields.io/badge/Hosting-%E2%82%AC0%2Fmonth-22C55E)](#what-youll-need)
+
+**Live demo:** [Alice (€50)](https://main.pay-me-back-demo.pages.dev/EXAMPLE_TOKEN_ALICE_REPLACE_ME/) · [Bob (€25)](https://main.pay-me-back-demo.pages.dev/EXAMPLE_TOKEN_BOB_REPLACE_ME/) · [Charlie (€120)](https://main.pay-me-back-demo.pages.dev/EXAMPLE_TOKEN_CHARLIE_REPLACE_ME/) · [Admin](https://main.pay-me-back-demo.pages.dev/admin/demo-admin-do-not-use-12345/)
 
 </div>
 
@@ -342,9 +346,11 @@ The voice guide is at `docs/TONE.md` — short, opinionated, and the reason the 
 
 ---
 
-## Live demo (run it yourself)
+## Live demo
 
-A live demo isn't hosted (we don't want to pay for everyone's bandwidth and the placeholder data would just confuse), but spinning one up against your own Cloudflare account is one command:
+A demo instance is deployed at **[main.pay-me-back-demo.pages.dev](https://main.pay-me-back-demo.pages.dev/EXAMPLE_TOKEN_ALICE_REPLACE_ME/)** — click any of the three placeholder debtors to see the per-token page, or `/admin/demo-admin-do-not-use-12345/` for the admin dashboard. The slider stays at zero because there's no Worker behind it (the demo is the static site only); confirms won't fire either.
+
+To spin up your own demo against your own Cloudflare account:
 
 ```bash
 # After cloning + npm install + npm run build:
