@@ -3,6 +3,7 @@ node_modules/
 dist/
 .astro/
 .cache/
+nanobanana-output/
 
 # Secrets and personal data (D-30)
 data/debtors.json

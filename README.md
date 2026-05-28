@@ -1,12 +1,72 @@
-# pay-me-back
+<div align="center">
 
-A tiny, friend-shaped pay-me-back microsite. Per-person URL, soft self-irony, a slider that visibly shrinks as people pay, three modalities (pay in full / installments / "I need more time"), an anonymous leaderboard, an admin dashboard, and a Telegram/email ping every time someone confirms.
+![pay-me-back banner](./public/banner.png)
 
-Built for the awkward "hey you still owe me €50 from the cabin trip" group of about 5-15 friends — not for a public payments product. Self-hosted on Cloudflare's free tier; total monthly cost is €0 unless you do something exotic.
+# 💸 pay-me-back
+
+**A tiny, friend-shaped microsite for collecting money from people who already trust you.**
+
+Per-person URL · soft self-irony · a slider that visibly shrinks as people pay · three modalities (pay in full / installments / "I need more time") · anonymous leaderboard · admin dashboard · Telegram pings.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Astro 6](https://img.shields.io/badge/Astro-6.x-FF5D01?logo=astro&logoColor=white)](https://astro.build/)
+[![Tailwind v4](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages%20%2B%20Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Free tier](https://img.shields.io/badge/Hosting-%E2%82%AC0%2Fmonth-22C55E)](#what-youll-need)
+
+</div>
+
+Built for the awkward "hey you still owe me €50 from the cabin trip" group of about 5-15 friends — **not** for a public payments product. Self-hosted on Cloudflare's free tier; total monthly cost is €0 unless you do something exotic.
 
 This is the open-source template version of the original `pay.leonardboeker.de`. All personal data has been stripped; you provide your own debtors, bank details, PayPal handle, and (optional) Telegram bot.
 
 > **It's a microsite, not a payment processor.** Money still moves through PayPal or a SEPA transfer that the debtor initiates themselves. Confirmation is on the honor system — they tap "I sent it," you get a Telegram ping, your slider goes down. Trust + a shared joke is the whole UX.
+
+---
+
+## Contents
+
+- [Five ways to use this](#five-ways-to-use-this)
+- [Stack](#stack)
+- [What you'll need](#what-youll-need)
+- [Quick start (local dev)](#quick-start-local-dev)
+- [Deploying (Cloudflare)](#deploying-cloudflare)
+- [Replacing the pixel art](#replacing-the-pixel-art)
+- [Customising the copy](#customising-the-copy)
+- [Architecture](#architecture)
+- [Pre-launch checklist](#pre-launch-checklist)
+- [Data retention](#data-retention)
+- [Troubleshooting](#troubleshooting)
+- [License](#license) · [Contributing](#contributing)
+
+---
+
+## Five ways to use this
+
+The template ships with the original "friends owe me money before my world trip" framing — but the underlying mechanic (per-token URL + soft tone + self-confirm + shrinking slider) works for any scenario where a small known group of people each owe a known amount. Five concrete riffs:
+
+### 1. 💸 The classic pay-me-back
+
+You fronted small things over months — cabin trip groceries, taxis, that one weird night in Lisbon — and you'd rather not awkwardly DM each person individually. Each friend gets their own URL with the specific story attached. They tap, they pay, slider goes down, you get a Telegram ping. No nagging, no spreadsheet, no group chat drama. (*This is what the original site was built for.*)
+
+### 2. 🎁 Send-off / farewell collection
+
+A colleague is leaving the company, a friend is moving abroad, your roommate is going back to grad school. You want to send them off with a real gift + a personal landing page that says *"here's what we're getting, here's why, drop your share."* Customise the hero copy to tell the story of why this person matters, swap the slider target to the gift's price, send the link to the group Slack. Done in 20 minutes.
+
+### 3. 🥂 Host-fronted birthday or event
+
+You're throwing a 30th. You booked the venue, paid the caterer, ordered the cake — and now you need to softly extract €40-per-head from twelve people without sending a single passive-aggressive message. Each guest gets their own card with the running tally of what's covered. Late RSVPs see exactly how much is left to collect.
+
+### 4. ✈️ Post-trip cost reconciliation
+
+Five-person Airbnb weekend in Lisbon. One person put the booking on their card; another put the rental car; somebody else floated the groceries. Instead of a Splitwise wall, generate a per-person URL that shows *just their share*, the line-items that make it up, and a one-tap PayPal link. The leaderboard lets everyone see who's already settled up without exposing amounts.
+
+### 5. 💍 Wedding "Hochzeitskasse" / honeymoon fund
+
+Replace the registry. A single beautiful landing page tells the how-we-met story and explains you'd rather have a contribution toward the honeymoon than a sixth toaster. Each guest URL is pre-filled with a suggested amount (e.g. €100 for close friends, €50 for plus-ones), but they can always pay extra. The slider shows the honeymoon-budget bar quietly filling up over the weeks before the wedding.
+
+> ✨ **Got another use case?** Open an issue with a one-line description — if it stretches the template's range, it goes here.
 
 ---
 
